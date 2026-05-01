@@ -1,90 +1,57 @@
 import streamlit as st
+import requests
 import pandas as pd
 
-st.set_page_config(layout="wide", page_title="Cycling Board Game Hub")
+st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 
-# --- INSERISCI QUI IL TUO LINK CSV ---
-CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTb2BJs9RzhCeQZZvkWqseehXP4Y3ZyomFRG8Pwat43pvQ7O624Q3qcbhMy9x2jzEUKD-sbFRskFrlD/pub?gid=0&single=true&output=csv"
+# --- INSERISCI QUI L'URL CHE HAI COPIATO (quello che finisce con /exec) ---
+WEB_APP_URL = "AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr"
 
-def clean_row(val):
-    """Spezza le righe complesse in colonne pulite"""
-    s = str(val).strip()
-    if not s or s == 'nan' or '---' in s:
-        return None
-    
-    # Caso Classifica Generale: "2. [WT]@User: Colore --> 13:40"
-    if "-->" in s:
+st.title("🚴 World Tour Cycling Dashboard")
+
+# Barra laterale per inserire il codice gara
+st.sidebar.header("Configurazione Gara")
+code_input = st.sidebar.text_input("Inserisci Codice Gara (es: 26.5.C.3)", "26.5.C.3")
+
+if st.sidebar.button("Aggiorna Classifiche"):
+    # Chiamata al tuo script Google
+    with st.spinner('Pescando i dati dal foglio ufficiale...'):
         try:
-            pos_part = s.split(".")[0] if "." in s else ""
-            rest = s.split(".")[1] if "." in s else s
-            rider_part = rest.split("-->")[0].strip()
-            time_part = rest.split("-->")[1].strip()
-            return {"Pos": pos_part, "Giocatore/Team": rider_part, "Tempo/Distacco": time_part}
-        except:
-            return {"Dato": s}
+            # Inviamo il codice al tuo script via URL
+            response = requests.get(f"{WEB_APP_URL}?code={code_input}")
+            data = response.json()
 
-    # Caso Punti/Montagna: "NOME_GIOCATORE - 5 CPts" o "NOME - 3"
-    if " - " in s:
-        parts = s.split(" - ")
-        return {"Giocatore": parts[0].strip(), "Punti/Info": parts[1].strip()}
-    
-    return {"Dato": s}
-
-st.title("🚴 World Tour Cycling - Risultati Live")
-
-try:
-    # Carichiamo i dati
-    df_raw = pd.read_csv(CSV_URL, header=None)
-    
-    # --- FIX SELETTORE TAPPE ---
-    # Cerchiamo i nomi delle tappe nella riga 3 (indice 2), saltando celle vuote o trattini
-    riga_tappe = df_raw.iloc[2, :].tolist()
-    opzioni_tappa = [str(x) for x in riga_tappe if str(x) not in ['nan', 'None', '----------', 'STAGE']]
-    
-    st.sidebar.header("Impostazioni")
-    if opzioni_tappa:
-        tappa_scelta = st.sidebar.selectbox("Seleziona la Tappa", opzioni_tappa)
-        
-        # Troviamo la colonna giusta (cerchiamo il valore esatto nella riga 3)
-        idx_colonna = riga_tappe.index(tappa_scelta)
-        dati_gara = df_raw.iloc[:, idx_colonna]
-
-        # --- DEFINIZIONE BLOCCHI (Coordinate righe) ---
-        blocchi = [
-            {"titolo": "🏆 Generale", "range": (4, 14)},
-            {"titolo": "⛰️ Montagna", "range": (16, 21)},
-            {"titolo": "🏁 Punti", "range": (23, 29)},
-            {"titolo": "⚔️ Combattività", "range": (33, 40)},
-            {"titolo": "💨 Scia", "range": (43, 50)}
-        ]
-
-        # Visualizzazione
-        st.header(f"Risultati: {tappa_scelta}")
-        
-        # Creiamo le colonne visive
-        cols = st.columns(len(blocchi))
-
-        for i, b in enumerate(blocchi):
-            with cols[i]:
-                st.subheader(b["titolo"])
-                # Estraiamo le righe grezze
-                rows_raw = dati_gara.iloc[b["range"][0]:b["range"][1]].tolist()
+            if "error" in data:
+                st.error(data["error"])
+            else:
+                st.success(f"Dati caricati per: {data['currentCode']}")
                 
-                # Elaboriamo ogni riga
-                tabella_pulita = []
-                for r in rows_raw:
-                    dati_processati = clean_row(r)
-                    if dati_processati:
-                        tabella_pulita.append(dati_processati)
-                
-                if tabella_pulita:
-                    # Trasformiamo in tabella visiva
-                    df_view = pd.DataFrame(tabella_pulita)
-                    st.dataframe(df_view, use_container_width=True, hide_index=True)
-                else:
-                    st.write("Dati non ancora disponibili")
-    else:
-        st.error("Non ho trovato i nomi delle tappe nel file. Controlla la riga 3 del foglio RESULTS.")
+                # Creazione Tab per le varie classifiche
+                t1, t2, t3, t4 = st.tabs(["🏆 Generale", "🏁 Sprint/Mountain", "👥 Team", "🚀 Next Stage"])
 
-except Exception as e:
-    st.error(f"Errore tecnico: {e}")
+                with t1:
+                    st.subheader("Classifica Generale")
+                    df_gen = pd.DataFrame(data["generalClassification"])
+                    st.table(df_gen[['rank', 'player', 'team', 'tourPts', 'bonusWtp']])
+
+                with t2:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.subheader("🔴 Montagna")
+                        st.table(pd.DataFrame(data["mountainClassification"])[['rank', 'player', 'tourPts']])
+                    with col2:
+                        st.subheader("🟢 Sprint")
+                        st.table(pd.DataFrame(data["sprintClassification"])[['rank', 'player', 'tourPts']])
+
+                with t3:
+                    st.subheader("Classifica Squadre (Time)")
+                    st.table(pd.DataFrame(data["teamTimeClassification"])[['rank', 'team', 'tourTimes']])
+
+                with t4:
+                    st.subheader("Griglia di partenza prossima tappa")
+                    st.table(pd.DataFrame(data["nextStageGrid"])[['grid', 'player', 'teamName', 'e2']])
+
+        except Exception as e:
+            st.error(f"Errore di connessione: {e}")
+else:
+    st.info("Inserisci il codice della gara a sinistra e clicca su 'Aggiorna Classifiche'")
