@@ -18,7 +18,7 @@ try:
     # 1. Carichiamo il menu dei tour
     # Se non hai ancora la scheda menu, possiamo inserire i link a mano qui sotto per ora
     tours = {
-        "Itzulia Basque Country": "IL_TUO_LINK_CSV_ITZULIA",
+        "Itzulia Basque Country": "https://docs.google.com/spreadsheets/d/e/2PACX-1vTb2BJs9RzhCeQZZvkWqseehXP4Y3ZyomFRG8Pwat43pvQ7O624Q3qcbhMy9x2jzEUKD-sbFRskFrlD/pub?gid=0&single=true&output=csv",
         # "Volta Ciclista": "IL_TUO_LINK_CSV_VOLTA",
     }
     
