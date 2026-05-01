@@ -4,24 +4,46 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 
-# --- 1. CONFIGURAZIONE DEI TOUR ---
+# --- 1. TOUR CONFIGURATION ---
 TOURS = {
     "Itzulia Basque Country": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
-    "Volta Ciclista (Esempio)": "INSERISCI_QUI_URL_VOLTA_QUANDO_PRONTO",
+    "Volta Ciclista (Example)": "YOUR_VOLTA_URL_HERE",
 }
 
-# --- 2. CONFIGURAZIONE IMMAGINI GITHUB ---
+# --- 2. GITHUB IMAGES CONFIGURATION ---
 GITHUB_USER = "PepIndurain"
 REPO_NAME = "World-Tour-2026"
 BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/main/"
 
-# --- FUNZIONI DI SUPPORTO ---
+# --- DICTIONARY FOR COLUMN TRANSLATION ---
+# Questo traduce le chiavi del database in nomi leggibili in inglese
+COLUMN_MAP = {
+    "rank": "Rank",
+    "trend": "Trend",
+    "player": "Rider",
+    "team": "Team",
+    "jersey": "Jersey",
+    "type": "Type",
+    "name": "Rider Name",
+    "bonusSeconds": "Bonus (s)",
+    "stageTime": "Stage Time",
+    "wtp": "WTP",
+    "leaders": "Leaders",
+    "stagePts": "Stage Pts",
+    "tourPts": "Total Pts",
+    "bonusWtp": "Bonus WTP",
+    "currentWtp": "Current WTP",
+    "stageTimes": "Stage Time",
+    "tourTimes": "Total Time",
+    "grid": "Start Pos",
+    "teamName": "Team Name",
+    "e2": "Energy"
+}
+
+# --- SUPPORT FUNCTIONS ---
 def get_jersey_url(val):
     v = str(val).lower()
-    # Se la cella è vuota o contiene 'none', restituiamo una stringa vuota, non None
-    if not v or v == 'none' or v == 'nan':
-        return ""
-    
+    if not v or v in ['none', 'nan', '']: return ""
     if 'yellow' in v: return f"{BASE_IMAGE_URL}yellow-jersey.png"
     if 'green' in v: return f"{BASE_IMAGE_URL}green-jersey.png"
     if 'polkadot' in v: return f"{BASE_IMAGE_URL}polkadot-jersey.png"
@@ -54,17 +76,17 @@ def style_cycling_rows(row):
     if 'white' in j: return ['background-color: #F2F2F2'] * len(row)
     return [''] * len(row)
 
-# --- INTERFACCIA ---
+# --- INTERFACE ---
 st.title("🚴 World Tour Cycling Dashboard")
 
-st.sidebar.header("Impostazioni")
-nome_tour = st.sidebar.selectbox("Seleziona il Tour", list(TOURS.keys()))
-codice_gara = st.sidebar.text_input("Codice Gara (es: 26.5.A.2)", "26.5.A.2")
+st.sidebar.header("Settings")
+nome_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()))
+codice_gara = st.sidebar.text_input("Race Code (e.g., 26.5.A.2)", "26.5.A.2")
 
 URL_ATTUALE = TOURS[nome_tour]
 
 if codice_gara:
-    with st.spinner('Pulizia dati in corso...'):
+    with st.spinner('Loading official data...'):
         try:
             response = requests.get(f"{URL_ATTUALE}?code={codice_gara}")
             data = response.json()
@@ -72,24 +94,36 @@ if codice_gara:
             if "error" in data:
                 st.error(data["error"])
             else:
-                st.info(f"📍 {data.get('currentCode', '')}")
+                st.info(f"📍 Viewing: {data.get('currentCode', '')}")
                 
-                tabs = st.tabs(["🏁 Tappa", "🟡 Generale", "🟢 Sprint", "🔴 Montagna", "🔵 Punti TP", "👥 Team", "🚀 Griglia"])
+                # Traduzione nomi dei Tab
+                tabs = st.tabs([
+                    "🏁 Stage Results", 
+                    "🟡 General (GC)", 
+                    "🟢 Points", 
+                    "🔴 Mountain", 
+                    "🔵 TP Points", 
+                    "👥 Teams", 
+                    "🚀 Next Grid"
+                ])
 
                 def render_table(key, title, tab_idx):
                     with tabs[tab_idx]:
-                        # Creiamo il DataFrame e riempiamo i valori mancanti globalmente
                         df = pd.DataFrame(data.get(key, []))
                         if not df.empty:
-                            # Riempiamo ogni cella vuota con una stringa vuota per evitare i "None"
                             df = df.fillna("")
 
+                            # Gestione Maglie
                             if 'jersey' in df.columns:
                                 df['jersey_raw'] = df['jersey']
                                 df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
                             
+                            # Gestione Leaders
                             if 'leaders' in df.columns:
                                 df['leaders'] = df['leaders'].apply(get_leader_emojis)
+                            
+                            # Traduzione intestazioni colonne
+                            df = df.rename(columns=COLUMN_MAP)
                             
                             styled_df = df.style.apply(style_cycling_rows, axis=1)
                             
@@ -99,18 +133,12 @@ if codice_gara:
                                 use_container_width=True, 
                                 hide_index=True,
                                 column_config={
-                                    "jersey": st.column_config.ImageColumn("Maglia"),
+                                    "Jersey": st.column_config.ImageColumn("Jersey"),
                                     "jersey_raw": None 
                                 }
                             )
                 
-                render_table("stageResults", "Risultati Tappa", 0)
-                render_table("generalClassification", "Classifica Generale", 1)
-                render_table("sprintClassification", "Classifica Sprint", 2)
-                render_table("mountainClassification", "Classifica Montagna", 3)
-                render_table("tpClassification", "Classifica Punti TP", 4)
-                render_table("teamTimeClassification", "Team Classification", 5)
-                render_table("nextStageGrid", "Griglia Prossima Tappa", 6)
-
-        except Exception as e:
-            st.error(f"Errore: {e}")
+                render_table("stageResults", "Stage Classification", 0)
+                render_table("generalClassification", "General Classification (GC)", 1)
+                render_table("sprintClassification", "Points Classification", 2)
+                render_table("mountainClassification", "Mountains Classification (KOM)", 3)
