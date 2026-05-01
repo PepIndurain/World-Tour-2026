@@ -8,37 +8,32 @@ TOURS = {
     "Itzulia Basque Country": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
 }
 
-# --- FUNZIONE PER COLORARE LE RIGHE ---
-def style_cycling_rows(row):
-    # Recuperiamo il valore della colonna 'jersey'
-    color_val = str(row['jersey']).lower() if 'jersey' in row else ''
-    
-    # Definiamo i colori (Hex) simili al tuo Excel
-    bg_color = ''
-    if 'yellow' in color_val: bg_color = 'background-color: #fdf3c0' # Giallo tenue
-    elif 'green' in color_val: bg_color = 'background-color: #d5f5e3' # Verde tenue
-    elif 'polkadot' in color_val: bg_color = 'background-color: #f5d5d5' # Rosso/Pois tenue
-    elif 'white' in color_val: bg_color = 'background-color: #f2f4f4' # Grigio/Bianco tenue
-    
-    return [bg_color] * len(row)
+# --- MAPPATURA IMMAGINI MAGLIETTE ---
+# Qui colleghiamo il testo dello script a delle icone reali
+JERSEY_ICONS = {
+    "yellow": "https://cdn-icons-png.flaticon.com/512/3159/3159614.png", # Gialla
+    "green": "https://cdn-icons-png.flaticon.com/512/3159/3159611.png",  # Verde
+    "polkadot": "https://cdn-icons-png.flaticon.com/512/3159/3159642.png", # Pois (Rossa)
+    "white": "https://cdn-icons-png.flaticon.com/512/3159/3159615.png",  # Bianca
+}
 
-# --- FUNZIONE PER SOSTITUIRE TESTO CON EMOJI ---
-def icon_jersey(val):
-    val = str(val).lower()
-    if 'yellow' in val: return "👕🟡"
-    if 'green' in val: return "👕🟢"
-    if 'polkadot' in val: return "👕🔴"
-    if 'white' in val: return "👕⚪"
-    return ""
+def style_cycling_rows(row):
+    # Logica per il colore della riga (tenue per leggibilità)
+    j = str(row['jersey_raw']).lower() if 'jersey_raw' in row else ''
+    if 'yellow' in j: return ['background-color: #fdf3c0'] * len(row)
+    if 'green' in j: return ['background-color: #d5f5e3'] * len(row)
+    if 'polkadot' in j: return ['background-color: #f5d5d5'] * len(row)
+    if 'white' in j: return ['background-color: #f2f4f4'] * len(row)
+    return [''] * len(row)
 
 st.title("🚴 World Tour Cycling Dashboard")
 
 st.sidebar.header("Impostazioni")
 nome_tour = st.sidebar.selectbox("Seleziona il Tour", list(TOURS.keys()))
-codice_gara = st.sidebar.text_input("Codice Gara (es: 26.5.A.2)", "26.5.A.2")
+codice_gara = st.sidebar.text_input("Codice Gara", "26.5.A.2")
 
 if codice_gara:
-    with st.spinner('Caricamento dati e applicazione maglie...'):
+    with st.spinner('Caricamento maglie e classifiche...'):
         try:
             response = requests.get(f"{TOURS[nome_tour]}?code={codice_gara}")
             data = response.json()
@@ -46,23 +41,31 @@ if codice_gara:
             if "error" in data:
                 st.error(data["error"])
             else:
-                st.success(f"Visualizzazione: {data.get('currentCode', '')}")
-
                 nomi_tab = ["🏁 Tappa", "🟡 Generale", "🟢 Sprint", "🔴 Montagna", "🔵 Punti TP", "👥 Team", "🚀 Griglia"]
                 tabs = st.tabs(nomi_tab)
 
                 def render_styled_table(key, title):
                     df = pd.DataFrame(data.get(key, []))
                     if not df.empty:
-                        # 1. Trasformiamo i nomi dei colori in icone nella colonna 'jersey'
+                        # Salviamo il testo originale per il colore, poi trasformiamo 'jersey' in link immagine
                         if 'jersey' in df.columns:
-                            df['jersey'] = df['jersey'].apply(icon_jersey)
+                            df['jersey_raw'] = df['jersey']
+                            df['jersey'] = df['jersey'].str.lower().map(JERSEY_ICONS).fillna("")
                         
-                        # 2. Applichiamo lo stile alle righe
+                        # Applichiamo lo stile colore
                         styled_df = df.style.apply(style_cycling_rows, axis=1)
                         
                         st.header(title)
-                        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+                        # Usiamo column_config per mostrare l'immagine vera
+                        st.dataframe(
+                            styled_df, 
+                            use_container_width=True, 
+                            hide_index=True,
+                            column_config={
+                                "jersey": st.column_config.ImageColumn("Maglia"),
+                                "jersey_raw": None # Nascondiamo la colonna di servizio
+                            }
+                        )
                     else:
                         st.info(f"Nessun dato per {title}")
 
