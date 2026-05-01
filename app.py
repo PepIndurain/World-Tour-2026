@@ -132,10 +132,10 @@ elif page == "🏆 Hall of Fame":
             st.markdown(row + "</div>", unsafe_allow_html=True)
 
 else:
-  # --- 📊 MASTER STANDINGS ---
+ # --- 📊 MASTER STANDINGS ---
     st.markdown('<div class="main-header"><h1>📊 Master Standings</h1><p>World Tour Global Rankings</p></div>', unsafe_allow_html=True)
     
-    # Inserisci il nuovo URL qui sotto
+    # Ricordati di aggiornare l'URL se ne hai generato uno nuovo
     # MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec"
 
     if st.button("🔄 Force Refresh Standings"):
@@ -147,7 +147,7 @@ else:
         try:
             r = requests.get(MASTER_URL, timeout=20)
             return r.json()
-        except: return {"error": "Connection error. Please check Master URL."}
+        except: return {"error": "Connection error to Master File."}
 
     master_data = fetch_master()
 
@@ -159,21 +159,24 @@ else:
         with tr:
             df_r = pd.DataFrame(master_data.get("ridersMaster", []))
             if not df_r.empty:
-                # Pulizia decimali
                 df_r['WTP'] = pd.to_numeric(df_r['WTP'], errors='coerce').round(2)
-                # Forza ordine colonne per sicurezza
                 df_r = df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]]
                 st.dataframe(df_r, use_container_width=True, hide_index=True)
             else:
-                st.warning("Rider data not found.")
+                st.warning("Rider data is empty in the Google Script response.")
 
         with tt:
-            df_t = pd.DataFrame(master_data.get("teamsMaster", []))
+            # Recuperiamo i dati dei team
+            raw_teams = master_data.get("teamsMaster", [])
+            df_t = pd.DataFrame(raw_teams)
+            
             if not df_t.empty:
-                # Pulizia decimali
                 df_t['WTP'] = pd.to_numeric(df_t['WTP'], errors='coerce').round(2)
-                # Forza ordine colonne per sicurezza
-                df_t = df_t[["Rank", "Player", "Team Name", "WTP"]]
+                # Verifichiamo che le colonne esistano prima di riordinare
+                cols_to_show = ["Rank", "Player", "Team Name", "WTP"]
+                df_t = df_t[[c for c in cols_to_show if c in df_t.columns]]
                 st.dataframe(df_t, use_container_width=True, hide_index=True)
             else:
-                st.warning("Team data not found.")
+                # Se entriamo qui, lo script Google ha restituito una lista vuota per i team
+                st.error("Team data was not found in the spreadsheet. Check if Column V (Teams) has data starting from row 5.")
+                st.write("Debug info - Keys found in JSON:", list(master_data.keys()))
