@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 
-# --- 1. CONFIGURAZIONE DEI TOUR (Aggiungi qui i link degli altri file) ---
+# --- 1. CONFIGURAZIONE DEI TOUR ---
 TOURS = {
     "Itzulia Basque Country": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
     "Volta Ciclista (Esempio)": "INSERISCI_QUI_URL_VOLTA_QUANDO_PRONTO",
@@ -54,9 +54,7 @@ def style_cycling_rows(row):
 st.title("🚴 World Tour Cycling Dashboard")
 
 st.sidebar.header("Impostazioni")
-# Ripristino del menu dei Tour
 nome_tour = st.sidebar.selectbox("Seleziona il Tour", list(TOURS.keys()))
-# Input del codice
 codice_gara = st.sidebar.text_input("Codice Gara (es: 26.5.A.2)", "26.5.A.2")
 
 URL_ATTUALE = TOURS[nome_tour]
@@ -65,4 +63,46 @@ if codice_gara:
     with st.spinner(f'Caricamento dati da {nome_tour}...'):
         try:
             response = requests.get(f"{URL_ATTUALE}?code={codice_gara}")
-            dat
+            data = response.json()
+
+            if "error" in data:
+                st.error(data["error"])
+            else:
+                st.info(f"📍 {data.get('currentCode', '')}")
+                
+                tabs = st.tabs(["🏁 Tappa", "🟡 Generale", "🟢 Sprint", "🔴 Montagna", "🔵 Punti TP", "👥 Team", "🚀 Griglia"])
+
+                def render_table(key, title, tab_idx):
+                    with tabs[tab_idx]:
+                        df = pd.DataFrame(data.get(key, []))
+                        if not df.empty:
+                            if 'jersey' in df.columns:
+                                df['jersey_raw'] = df['jersey']
+                                df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
+                            
+                            if 'leaders' in df.columns:
+                                df['leaders'] = df['leaders'].apply(get_leader_emojis)
+                            
+                            styled_df = df.style.apply(style_cycling_rows, axis=1)
+                            
+                            st.header(title)
+                            st.dataframe(
+                                styled_df, 
+                                use_container_width=True, 
+                                hide_index=True,
+                                column_config={
+                                    "jersey": st.column_config.ImageColumn("Maglia"),
+                                    "jersey_raw": None 
+                                }
+                            )
+                
+                render_table("stageResults", "Risultati Tappa", 0)
+                render_table("generalClassification", "Classifica Generale", 1)
+                render_table("sprintClassification", "Classifica Sprint", 2)
+                render_table("mountainClassification", "Classifica Montagna", 3)
+                render_table("tpClassification", "Classifica Punti TP", 4)
+                render_table("teamTimeClassification", "Team Classification", 5)
+                render_table("nextStageGrid", "Griglia Prossima Tappa", 6)
+
+        except Exception as e:
+            st.error(f"Errore di connessione: {e}")
