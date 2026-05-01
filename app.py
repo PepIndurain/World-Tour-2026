@@ -12,7 +12,7 @@ TOURS = {
         "id": "5"
     },
     "Volta Ciclista a Catalunya (4)": {
-        "url": "https://script.google.com/macros/s/AKfycbzXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
+        "url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
         "id": "4"
     }
 }
