@@ -79,7 +79,6 @@ def style_cycling_rows(row):
     if 'white' in j: return ['background-color: #F2F2F2'] * len(row)
     return [''] * len(row)
 
-@st.cache_data(show_spinner=False)
 def fetch_data(url, code):
     try:
         response = requests.get(f"{url}?code={code}")
