@@ -4,17 +4,21 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="Cycling Hub")
 
-TOURS = {
-    "Itzulia Basque Country": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
-}
+# --- CONFIGURAZIONE ---
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec"
 
-# --- FUNZIONE MANUALE PER ASSEGNARE L'ICONA ---
+# Parametri per le tue immagini su GitHub
+GITHUB_USER = "PepIndurain"
+REPO_NAME = "World-Tour-2026"
+BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/main/"
+
 def get_jersey_url(val):
     v = str(val).lower()
-    if 'yellow' in v: return "https://img.icons8.com/color/48/cycling-jersey--v1.png"
-    if 'green' in v: return "https://img.icons8.com/color/48/cycling-jersey--v2.png"
-    if 'polkadot' in v: return "https://img.icons8.com/color/48/cycling-jersey--v3.png"
-    if 'white' in v: return "https://img.icons8.com/color/48/cycling-jersey--v4.png"
+    # Usiamo i nomi esatti che vedo nel tuo screenshot
+    if 'yellow' in v: return f"{BASE_IMAGE_URL}yellow-jersey.png"
+    if 'green' in v: return f"{BASE_IMAGE_URL}green-jersey.png"
+    if 'polkadot' in v: return f"{BASE_IMAGE_URL}polkadot-jersey.png"
+    if 'white' in v: return f"{BASE_IMAGE_URL}white-jersey.png"
     return None
 
 def style_cycling_rows(row):
@@ -28,13 +32,12 @@ def style_cycling_rows(row):
 st.title("🚴 World Tour Cycling Dashboard")
 
 st.sidebar.header("Impostazioni")
-nome_tour = st.sidebar.selectbox("Seleziona il Tour", list(TOURS.keys()))
 codice_gara = st.sidebar.text_input("Codice Gara", "26.5.A.2")
 
 if codice_gara:
-    with st.spinner('Pescando i dati...'):
+    with st.spinner('Caricamento dati e maglie personalizzate...'):
         try:
-            response = requests.get(f"{TOURS[nome_tour]}?code={codice_gara}")
+            response = requests.get(f"{WEB_APP_URL}?code={codice_gara}")
             data = response.json()
 
             if "error" in data:
@@ -46,12 +49,10 @@ if codice_gara:
                     with tabs[tab_idx]:
                         df = pd.DataFrame(data.get(key, []))
                         if not df.empty:
-                            # Creiamo la colonna con le immagini usando la funzione robusta
                             if 'jersey' in df.columns:
-                                df['jersey_raw'] = df['jersey'] # salviamo per il colore
-                                df['jersey'] = df['jersey'].apply(get_jersey_url)
+                                df['jersey_raw'] = df['jersey']
+                                df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
                             
-                            # Applichiamo lo stile
                             styled_df = df.style.apply(style_cycling_rows, axis=1)
                             
                             st.header(title)
@@ -61,12 +62,10 @@ if codice_gara:
                                 hide_index=True,
                                 column_config={
                                     "jersey": st.column_config.ImageColumn("Maglia"),
-                                    "jersey_raw": None # nascondi la colonna testo
+                                    "jersey_raw": None 
                                 }
                             )
-                        else:
-                            st.info(f"Nessun dato per {title}")
-
+                
                 render_table("stageResults", "Risultati Tappa", 0)
                 render_table("generalClassification", "Classifica Generale", 1)
                 render_table("sprintClassification", "Classifica Sprint", 2)
