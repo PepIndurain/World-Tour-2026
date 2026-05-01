@@ -132,9 +132,13 @@ elif page == "🏆 Hall of Fame":
             st.markdown(row + "</div>", unsafe_allow_html=True)
 
 else:
-    # --- 📊 MASTER STANDINGS ---
+   # --- 📊 MASTER STANDINGS ---
     st.markdown('<div class="main-header"><h1>📊 Master Standings</h1><p>World Tour Global Rankings</p></div>', unsafe_allow_html=True)
     
+    if st.button("🔄 Refresh Standings"):
+        st.cache_data.clear()
+        st.rerun()
+
     @st.cache_data(ttl=600)
     def fetch_master():
         try:
@@ -142,12 +146,24 @@ else:
         except: return {"error": "Connection error to Master File."}
 
     master_data = fetch_master()
-    if "error" in master_data: st.error(master_data["error"])
+    if "error" in master_data: 
+        st.error(master_data["error"])
     else:
         tr, tt = st.tabs(["👤 Overall Riders Standings", "👥 Overall Teams Standings"])
+        
         with tr:
             df_r = pd.DataFrame(master_data.get("ridersMaster", []))
-            if not df_r.empty: st.dataframe(df_r, use_container_width=True, hide_index=True)
+            if not df_r.empty:
+                # Rimuove eventuali colonne senza nome o completamente vuote
+                df_r = df_r.loc[:, ~df_r.columns.str.contains('^Unnamed')]
+                st.dataframe(df_r, use_container_width=True, hide_index=True)
+            else:
+                st.warning("No rider data found. Check row 4 of your Excel.")
+
         with tt:
             df_t = pd.DataFrame(master_data.get("teamsMaster", []))
-            if not df_t.empty: st.dataframe(df_t, use_container_width=True, hide_index=True)
+            if not df_t.empty:
+                df_t = df_t.loc[:, ~df_t.columns.str.contains('^Unnamed')]
+                st.dataframe(df_t, use_container_width=True, hide_index=True)
+            else:
+                st.warning("No team data found. Check row 4 of your Excel.")
