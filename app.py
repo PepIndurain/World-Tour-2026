@@ -135,7 +135,7 @@ else:
  # --- 📊 MASTER STANDINGS ---
     st.markdown('<div class="main-header"><h1>📊 Master Standings</h1><p>World Tour Global Rankings</p></div>', unsafe_allow_html=True)
     
-    # Ricordati di aggiornare l'URL se ne hai generato uno nuovo
+    # Inserisci il NUOVO URL qui sotto
     # MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec"
 
     if st.button("🔄 Force Refresh Standings"):
@@ -160,23 +160,14 @@ else:
             df_r = pd.DataFrame(master_data.get("ridersMaster", []))
             if not df_r.empty:
                 df_r['WTP'] = pd.to_numeric(df_r['WTP'], errors='coerce').round(2)
-                df_r = df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]]
-                st.dataframe(df_r, use_container_width=True, hide_index=True)
+                st.dataframe(df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]], use_container_width=True, hide_index=True)
             else:
-                st.warning("Rider data is empty in the Google Script response.")
+                st.warning("No rider data found.")
 
         with tt:
-            # Recuperiamo i dati dei team
-            raw_teams = master_data.get("teamsMaster", [])
-            df_t = pd.DataFrame(raw_teams)
-            
+            df_t = pd.DataFrame(master_data.get("teamsMaster", []))
             if not df_t.empty:
                 df_t['WTP'] = pd.to_numeric(df_t['WTP'], errors='coerce').round(2)
-                # Verifichiamo che le colonne esistano prima di riordinare
-                cols_to_show = ["Rank", "Player", "Team Name", "WTP"]
-                df_t = df_t[[c for c in cols_to_show if c in df_t.columns]]
-                st.dataframe(df_t, use_container_width=True, hide_index=True)
+                st.dataframe(df_t[["Rank", "Player", "Team Name", "WTP"]], use_container_width=True, hide_index=True)
             else:
-                # Se entriamo qui, lo script Google ha restituito una lista vuota per i team
-                st.error("Team data was not found in the spreadsheet. Check if Column V (Teams) has data starting from row 5.")
-                st.write("Debug info - Keys found in JSON:", list(master_data.keys()))
+                st.error("Team data not found. Make sure names are in Column Y starting from row 5.")
