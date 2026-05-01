@@ -18,6 +18,7 @@ TOURS = {
     "Ronde van Vlaanderen (3)": {
         "url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec",
         "id": "3"
+    },   
 }
 
 # --- 2. GITHUB IMAGES CONFIGURATION ---
