@@ -4,46 +4,65 @@ import pandas as pd
 import string
 
 # Page Configuration
-st.set_page_config(layout="wide", page_title="Cycling Pro Hub") 
+st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. FIXED CSS: LARGE TABLE FONT & PROTECTED ICONS ---
+# --- 1. CLEANER CSS: TARGETED BOLD FOR INPUTS ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    /* Apply font only to text elements, avoiding icons */
+    /* Global text: Pure black, Inter font, weight 400 */
     html, body, p, div:not([data-testid="stIcon"]), label, h1, h2, h3 {
         font-family: 'Inter', sans-serif !important;
         color: #000000 !important;
+        font-weight: 400 !important;
     }
 
-    /* Keep icons as they are to avoid "keyboard_double_arrow" text */
+    /* Restore Streamlit Icons font */
     [data-testid="stIcon"] {
         font-family: inherit !important;
     }
 
-    /* Titles: Bold and Black */
+    /* Titles: Semi-bold (600) */
     h1, h2, h3 { 
         font-weight: 600 !important; 
+        letter-spacing: -0.02em;
     }
 
-    /* SPECIFIC FOR TABLES: Make Rider names and data pop */
+    /* --- SPECIFIC FOR INPUT FIELDS (Year, Tour, etc.) --- */
+    /* Text inside Selectbox */
+    div[data-baseweb="select"] > div {
+        font-weight: 600 !important;
+        color: #000000 !important;
+    }
+    
+    /* Text inside Text Input (the "26" field) */
+    .stTextInput input {
+        font-weight: 600 !important;
+        color: #000000 !important;
+    }
+
+    /* TABLES: Large font */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
-        font-size: 1.15rem !important; /* Larger font for rows */
+        font-size: 1.15rem !important; 
         color: #000000 !important;
         font-weight: 400 !important;
     }
 
     /* Sidebar Labels */
     [data-testid="stWidgetLabel"] p {
-        font-weight: 500 !important;
-        font-size: 1rem !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
     }
 
     /* Tab headers */
     button[data-baseweb="tab"] p {
-        font-weight: 600 !important;
+        font-weight: 500 !important;
         font-size: 1rem !important;
+    }
+
+    button[aria-selected="true"] p {
+        font-weight: 600 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -167,7 +186,7 @@ selected_stage = st.sidebar.selectbox(
     disabled=st.session_state.is_loading, on_change=trigger_loading
 )
 
-# --- 6. LOADING LOGIC ---
+# --- 6. DATA FETCHING LOGIC ---
 if st.session_state.is_loading or (selected_group != st.session_state.current_group or selected_stage != st.session_state.current_stage):
     st.session_state.current_group = selected_group
     st.session_state.current_stage = selected_stage
@@ -186,7 +205,7 @@ if st.session_state.is_loading or (selected_group != st.session_state.current_gr
     st.rerun()
 
 # --- 7. MAIN INTERFACE ---
-st.title("🚴 World Tour Cycling Hub")
+st.title("World Tour Dashboard")
 data = st.session_state.json_data
 
 if "error" in data:
