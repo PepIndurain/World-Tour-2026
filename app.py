@@ -134,7 +134,7 @@ if page == "Live Dashboard":
                     if 'jersey' in df.columns:
                         df['jersey_raw'] = df['jersey']
                         df['jersey'] = df['jersey_raw'].apply(lambda x: get_jersey_icon(x.split('-')[0]) if x else "")
-                    st.dataframe(df.style.apply(style_rows, axis=1), use_container_width=True, hide_index=True, column_config={"Jersey": st.column_config.ImageColumn()})
+                    st.dataframe(df.style.apply(style_rows, axis=1), use_container_width=True, hide_index=True, column_config={"jersey": st.column_config.ImageColumn()})
 
 elif page == "🏆 Hall of Fame":
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1><p>Final Tour Winners by Group</p></div>', unsafe_allow_html=True)
