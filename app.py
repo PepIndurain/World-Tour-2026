@@ -142,3 +142,9 @@ if codice_gara:
                 render_table("generalClassification", "General Classification (GC)", 1)
                 render_table("sprintClassification", "Points Classification", 2)
                 render_table("mountainClassification", "Mountains Classification (KOM)", 3)
+                render_table("tpClassification", "TP Points Classification", 4)
+                render_table("teamTimeClassification", "Team Classification", 5)
+                render_table("nextStageGrid", "Next Stage Starting Grid", 6)
+
+        except Exception as e:
+            st.error(f"Connection Error: {e}")
