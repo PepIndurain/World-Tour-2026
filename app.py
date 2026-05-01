@@ -4,10 +4,17 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 
-# --- 1. TOUR CONFIGURATION ---
+# --- 1. TOUR CONFIGURATION (ID and URLs) ---
+# Qui ho inserito i tuoi URL e associato l'ID (5 per Itzulia, 4 per Volta)
 TOURS = {
-    "Itzulia Basque Country": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
-    "Volta Ciclista a Catalunya": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
+    "Itzulia Basque Country (5)": {
+        "url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
+        "id": "5"
+    },
+    "Volta Ciclista a Catalunya (4)": {
+        "url": "https://script.google.com/macros/s/AKfycbzXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
+        "id": "4"
+    }
 }
 
 # --- 2. GITHUB IMAGES CONFIGURATION ---
@@ -67,28 +74,29 @@ st.title("🚴 World Tour Cycling Dashboard")
 st.sidebar.header("Settings")
 
 # 1. Selezione Tour
-nome_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()))
+selected_tour_name = st.sidebar.selectbox("Select Tour", list(TOURS.keys()))
 
-# 2. Selezione Parametri per comporre il codice
+# 2. Selezione Parametri temporali e logistici
 st.sidebar.subheader("Race Selection")
-prefix = st.sidebar.text_input("Season Code", "26.5") # Es. 26.5
+year_code = st.sidebar.text_input("Year (e.g., 26)", "26")
+tour_id = TOURS[selected_tour_name]["id"] # Prende l'ID in automatico (4 o 5)
 gruppo = st.sidebar.selectbox("Select Group", ["A", "B", "C", "D", "E", "F"])
 tappa = st.sidebar.selectbox("Select Stage", [str(i) for i in range(1, 11)])
 
-# Composizione automatica del codice (es: 26.5.A.2)
-codice_finale = f"{prefix}.{gruppo}.{tappa}"
-st.sidebar.write(f"**Final Code:** `{codice_finale}`")
+# Composizione automatica del codice: [Anno].[TourID].[Gruppo].[Tappa]
+codice_finale = f"{year_code}.{tour_id}.{gruppo}.{tappa}"
+st.sidebar.info(f"**Race Code:** `{codice_finale}`")
 
-URL_ATTUALE = TOURS[nome_tour]
+# Recuperiamo l'URL specifico per il Tour selezionato
+URL_ATTUALE = TOURS[selected_tour_name]["url"]
 
-# Carichiamo i dati automaticamente quando cambia una selezione
-with st.spinner(f'Loading {nome_tour} - Stage {tappa}...'):
+with st.spinner(f'Loading {selected_tour_name}...'):
     try:
         response = requests.get(f"{URL_ATTUALE}?code={codice_finale}")
         data = response.json()
 
         if "error" in data:
-            st.error(f"Data not available yet: {data['error']}")
+            st.error(f"Data not available: {data['error']}")
         else:
             st.info(f"📍 Stage: {data.get('currentCode', '')}")
             
@@ -106,24 +114,4 @@ with st.spinner(f'Loading {nome_tour} - Stage {tappa}...'):
                             df['jersey_raw'] = df['jersey']
                             df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
                         if 'leaders' in df.columns:
-                            df['leaders'] = df['leaders'].apply(get_leader_emojis)
-                        
-                        df = df.rename(columns=COLUMN_MAP)
-                        styled_df = df.style.apply(style_cycling_rows, axis=1)
-                        
-                        st.header(title)
-                        st.dataframe(
-                            styled_df, use_container_width=True, hide_index=True,
-                            column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None}
-                        )
-            
-            render_table("stageResults", "Stage Classification", 0)
-            render_table("generalClassification", "General Classification (GC)", 1)
-            render_table("sprintClassification", "Points Classification", 2)
-            render_table("mountainClassification", "Mountains Classification (KOM)", 3)
-            render_table("tpClassification", "TP Points Classification", 4)
-            render_table("teamTimeClassification", "Team Classification", 5)
-            render_table("nextStageGrid", "Next Stage Starting Grid", 6)
-
-    except Exception as e:
-        st.error(f"Connection Error: {e}")
+                            df['leaders'] = df['leaders'].apply(get_
