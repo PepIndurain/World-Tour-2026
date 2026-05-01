@@ -6,35 +6,50 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: READABILITY & INPUT BOLDING ---
+# --- 1. ENHANCED CSS: RED HEADER & CLEAN TYPOGRAPHY ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
     /* Global text: Pure black, Inter font */
-    html, body, p, div:not([data-testid="stIcon"]), label, h1, h2, h3 {
+    html, body, p, div:not([data-testid="stIcon"]), label {
         font-family: 'Inter', sans-serif !important;
         color: #000000 !important;
         font-weight: 400 !important;
     }
 
-    /* Restore Streamlit Icons font */
-    [data-testid="stIcon"] {
-        font-family: inherit !important;
+    /* Restore Streamlit Icons */
+    [data-testid="stIcon"] { font-family: inherit !important; }
+
+    /* CUSTOM RED HEADER BOX */
+    .main-header {
+        background: linear-gradient(95deg, #FF4B4B 0%, #C1272D 100%);
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 20px rgba(193, 39, 45, 0.2);
+    }
+    .main-header h1 {
+        color: #FFFFFF !important;
+        font-weight: 800 !important;
+        font-size: 3rem !important;
+        margin: 0 !important;
+        letter-spacing: -1px;
+        text-transform: uppercase;
+    }
+    .main-header p {
+        color: rgba(255, 255, 255, 0.9) !important;
+        font-weight: 500 !important;
+        margin-top: 10px !important;
+        font-size: 1.1rem !important;
     }
 
-    /* Titles: Semi-bold (600) */
-    h1, h2, h3 { 
-        font-weight: 600 !important; 
-        letter-spacing: -0.02em;
-    }
-
-    /* Target inputs and selectboxes for bold text */
+    /* INPUTS & SELECTBOXES */
     div[data-baseweb="select"] > div {
         font-weight: 600 !important;
         color: #000000 !important;
     }
-    
     .stTextInput input {
         font-weight: 600 !important;
         color: #000000 !important;
@@ -53,13 +68,14 @@ st.markdown("""
         font-size: 0.95rem !important;
     }
 
-    /* Tab headers */
+    /* Tabs Styling */
     button[data-baseweb="tab"] p {
         font-weight: 500 !important;
         font-size: 1rem !important;
     }
     button[aria-selected="true"] p {
-        font-weight: 600 !important;
+        font-weight: 700 !important;
+        color: #C1272D !important; /* Red accent for active tab */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -71,7 +87,7 @@ TOURS = {
         "id": "5"
     },
     "Volta Ciclista a Catalunya (4)": {
-        "url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
+        "url": "https://script.google.com/macros/s/AKfycbxXHl_6a4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
         "id": "4"
     },
     "Ronde van Vlaanderen (3)": {
@@ -106,10 +122,7 @@ def fetch_data(url, code):
     try:
         response = requests.get(f"{url}?code={code}", timeout=15)
         response.raise_for_status()
-        if "application/json" in response.headers.get("Content-Type", ""):
-            return response.json()
-        else:
-            return {"error": "Server error (Non-JSON content)"}
+        return response.json()
     except Exception as e:
         return {"error": str(e)}
 
@@ -165,10 +178,9 @@ year_code = st.sidebar.text_input("Year", "26", disabled=st.session_state.is_loa
 tour_id = TOURS[selected_tour_name]["id"]
 url_attuale = TOURS[selected_tour_name]["url"]
 
-# RESET LOGIC ON TOUR CHANGE
+# RESET ON TOUR CHANGE
 if st.session_state.prev_tour != selected_tour_name:
     st.session_state.prev_tour = selected_tour_name
-    # Force reset to defaults
     st.session_state.current_group = "A"
     st.session_state.current_stage = "1"
     st.session_state.is_loading = True
@@ -176,18 +188,14 @@ if st.session_state.prev_tour != selected_tour_name:
 group_options = list(string.ascii_uppercase)[:st.session_state.total_groups]
 stage_options = [str(i) for i in range(1, st.session_state.total_stages + 1)]
 
-# Ensure values are valid for current options
-if st.session_state.current_group not in group_options: st.session_state.current_group = "A"
-if st.session_state.current_stage not in stage_options: st.session_state.current_stage = "1"
-
 selected_group = st.sidebar.selectbox(
     "Select Group", group_options, 
-    index=group_options.index(st.session_state.current_group),
+    index=group_options.index(st.session_state.current_group) if st.session_state.current_group in group_options else 0,
     disabled=st.session_state.is_loading, on_change=trigger_loading
 )
 selected_stage = st.sidebar.selectbox(
     "Select Stage", stage_options, 
-    index=stage_options.index(st.session_state.current_stage),
+    index=stage_options.index(st.session_state.current_stage) if st.session_state.current_stage in stage_options else 0,
     disabled=st.session_state.is_loading, on_change=trigger_loading
 )
 
@@ -195,22 +203,27 @@ selected_stage = st.sidebar.selectbox(
 if st.session_state.is_loading or (selected_group != st.session_state.current_group or selected_stage != st.session_state.current_stage):
     st.session_state.current_group = selected_group
     st.session_state.current_stage = selected_stage
-    
     codice_call = f"{year_code}.{tour_id}.{selected_group}.{selected_stage}"
-    msg_loading = f"Fetching: {selected_tour_name} | Group {selected_group} | Stage {selected_stage}..."
     
-    with st.spinner(msg_loading):
+    with st.spinner(f"Fetching: {selected_tour_name}..."):
         data = fetch_data(url_attuale, codice_call)
         st.session_state.json_data = data
         if data and "error" not in data:
             st.session_state.total_groups = data.get("totalGroups", 6)
             st.session_state.total_stages = data.get("totalStages", 10)
-    
     st.session_state.is_loading = False
     st.rerun()
 
 # --- 7. MAIN INTERFACE ---
-st.title("World Tour Dashboard")
+
+# Custom Styled Header
+st.markdown(f"""
+    <div class="main-header">
+        <h1>World Tour Dashboard</h1>
+        <p>Pro Cycling Race Management & Results</p>
+    </div>
+    """, unsafe_allow_html=True)
+
 data = st.session_state.json_data
 
 if "error" in data:
@@ -232,13 +245,9 @@ elif data:
                     df['leaders'] = df['leaders'].apply(get_leader_emojis)
                 
                 df = df.rename(columns=COLUMN_MAP)
-                
-                st.dataframe(
-                    df.style.apply(style_cycling_rows, axis=1), 
-                    use_container_width=True, 
-                    hide_index=True,
-                    column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None}
-                )
+                st.dataframe(df.style.apply(style_cycling_rows, axis=1), 
+                             use_container_width=True, hide_index=True,
+                             column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None})
             else:
                 st.warning("No data available.")
 
