@@ -29,7 +29,7 @@ TOURS = {
     },
 }
 
-# --- 2. GITHUB IMAGES & MAPPING ---
+# --- GITHUB IMAGES & MAPPING ---
 GITHUB_USER = "PepIndurain"
 REPO_NAME = "World-Tour-2026"
 BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/main/"
@@ -63,12 +63,6 @@ def get_leader_emojis(val):
             elif 'polkadot' in c: emojis.append("🔴")
             elif 'white' in c: emojis.append("⚪")
         return " ".join(emojis)
-    else:
-        c = str(val).lower()
-        if 'yellow' in c: return "🟡"
-        if 'green' in c: return "🟢"
-        if 'polkadot' in c: return "🔴"
-        if 'white' in c: return "⚪"
     return ""
 
 def style_cycling_rows(row):
@@ -87,25 +81,17 @@ def fetch_data(url, code):
     except Exception as e:
         return {"error": str(e)}
 
-# --- CALLBACK PER DISABILITARE ---
 def trigger_loading():
     st.session_state.is_loading = True
 
 # --- SESSION STATE INITIALIZATION ---
-if "prev_tour" not in st.session_state:
-    st.session_state.prev_tour = None
-if "current_group" not in st.session_state:
-    st.session_state.current_group = "A"
-if "current_stage" not in st.session_state:
-    st.session_state.current_stage = "1"
-if "total_groups" not in st.session_state:
-    st.session_state.total_groups = 6
-if "total_stages" not in st.session_state:
-    st.session_state.total_stages = 3
-if "json_data" not in st.session_state:
-    st.session_state.json_data = {}
-if "is_loading" not in st.session_state:
-    st.session_state.is_loading = False
+if "prev_tour" not in st.session_state: st.session_state.prev_tour = None
+if "current_group" not in st.session_state: st.session_state.current_group = "A"
+if "current_stage" not in st.session_state: st.session_state.current_stage = "1"
+if "total_groups" not in st.session_state: st.session_state.total_groups = 6
+if "total_stages" not in st.session_state: st.session_state.total_stages = 3
+if "json_data" not in st.session_state: st.session_state.json_data = {}
+if "is_loading" not in st.session_state: st.session_state.is_loading = False
 
 # --- INTERFACE ---
 st.title("🚴 World Tour Cycling Dashboard")
@@ -123,33 +109,30 @@ year_code = st.sidebar.text_input("Year (e.g., 26)", "26", disabled=st.session_s
 tour_id = TOURS[selected_tour_name]["id"]
 url_attuale = TOURS[selected_tour_name]["url"]
 
-# --- LOGICA DI AGGIORNAMENTO DATI ---
-
-# Caso A: Cambio Tour o Primo avvio
+# Cambio Tour Rilevato
 if st.session_state.prev_tour != selected_tour_name:
     st.session_state.prev_tour = selected_tour_name
     st.session_state.current_group = "A"
     st.session_state.current_stage = "1"
-    st.session_state.is_loading = True # Attiviamo il caricamento
+    st.session_state.is_loading = True
 
-# --- CREAZIONE MENU A TENDINA DINAMICI ---
+# Opzioni dinamiche
 group_options = list(string.ascii_uppercase)[:st.session_state.total_groups]
 stage_options = [str(i) for i in range(1, st.session_state.total_stages + 1)]
 
-# Fallback di sicurezza per gli indici
+# Fallback indici
 if st.session_state.current_group not in group_options: st.session_state.current_group = group_options[0]
 if st.session_state.current_stage not in stage_options: st.session_state.current_stage = stage_options[0]
 
 st.sidebar.subheader("Race Selection")
 
-# Widget Group e Stage (disabilitati se is_loading è True)
 selected_group = st.sidebar.selectbox(
     "Select Group", 
     group_options, 
     index=group_options.index(st.session_state.current_group),
     disabled=st.session_state.is_loading,
     on_change=trigger_loading,
-    key="sb_group"
+    key="group_box"
 )
 
 selected_stage = st.sidebar.selectbox(
@@ -158,34 +141,34 @@ selected_stage = st.sidebar.selectbox(
     index=stage_options.index(st.session_state.current_stage),
     disabled=st.session_state.is_loading,
     on_change=trigger_loading,
-    key="sb_stage"
+    key="stage_box"
 )
 
-# Rilevamento cambiamento manuale (se non catturato dal callback)
+# Se i valori nel widget sono diversi da quelli salvati, attiva caricamento
 if selected_group != st.session_state.current_group or selected_stage != st.session_state.current_stage:
     st.session_state.is_loading = True
 
-# --- ESECUZIONE FETCH SOLO SE IN STATO LOADING ---
+# --- LOGICA DI FETCHING ---
 if st.session_state.is_loading:
-    # Aggiorniamo i valori interni prima del fetch
     st.session_state.current_group = selected_group
     st.session_state.current_stage = selected_stage
     
-    nuovo_codice = f"{year_code}.{tour_id}.{st.session_state.current_group}.{st.session_state.current_stage}"
+    codice_call = f"{year_code}.{tour_id}.{selected_group}.{selected_stage}"
     
-    with st.spinner(f'Fetching data for {nuovo_codice}...'):
-        data = fetch_data(url_attuale, nuovo_codice)
+    # MESSAGGIO PERSONALIZZATO: Utilizza i nomi invece del codice
+    msg = f"Fetching: {selected_tour_name} - Group {selected_group}, Stage {selected_stage}..."
+    
+    with st.spinner(msg):
+        data = fetch_data(url_attuale, codice_call)
         st.session_state.json_data = data
-        
         if "error" not in data:
             st.session_state.total_groups = data.get("totalGroups", 6)
             st.session_state.total_stages = data.get("totalStages", 10)
     
-    # Fine caricamento: resettiamo il flag e forziamo il rerun per riabilitare i widget
     st.session_state.is_loading = False
     st.rerun()
 
-# --- VISUALIZZAZIONE CODICE ---
+# Info finale
 codice_finale = f"{year_code}.{tour_id}.{st.session_state.current_group}.{st.session_state.current_stage}"
 st.sidebar.info(f"**Race Code:** `{codice_finale}`")
 
@@ -197,7 +180,7 @@ if "error" in data:
 elif not data:
     st.warning("No data loaded. Please try again.")
 else:
-    st.info(f"📍 Stage: {data.get('currentCode', f'Group {st.session_state.current_group} - Stage {st.session_state.current_stage}')}")
+    st.success(f"📍 {selected_tour_name} | Group {st.session_state.current_group} | Stage {st.session_state.current_stage}")
     
     tabs = st.tabs([
         "🏁 Stage Results", "🟡 General (GC)", "🟢 Points", 
