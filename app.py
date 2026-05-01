@@ -114,4 +114,24 @@ with st.spinner(f'Loading {selected_tour_name}...'):
                             df['jersey_raw'] = df['jersey']
                             df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
                         if 'leaders' in df.columns:
-                            df['leaders'] = df['leaders'].apply(get_
+                            df['leaders'] = df['leaders'].apply(get_leader_emojis)
+                        
+                        df = df.rename(columns=COLUMN_MAP)
+                        styled_df = df.style.apply(style_cycling_rows, axis=1)
+                        
+                        st.header(title)
+                        st.dataframe(
+                            styled_df, use_container_width=True, hide_index=True,
+                            column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None}
+                        )
+            
+            render_table("stageResults", "Stage Classification", 0)
+            render_table("generalClassification", "General Classification (GC)", 1)
+            render_table("sprintClassification", "Points Classification", 2)
+            render_table("mountainClassification", "Mountains Classification (KOM)", 3)
+            render_table("tpClassification", "TP Points Classification", 4)
+            render_table("teamTimeClassification", "Team Classification", 5)
+            render_table("nextStageGrid", "Next Stage Starting Grid", 6)
+
+    except Exception as e:
+        st.error(f"Connection Error: {e}")
