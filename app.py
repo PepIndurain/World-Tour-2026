@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 import string
 
-st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
+st.set_page_config(layout="wide", page_title="Cycling Pro Hub") 
 
 # --- 1. TOUR CONFIGURATION ---
 TOURS = {
