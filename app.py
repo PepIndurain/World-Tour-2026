@@ -58,7 +58,7 @@ st.markdown("""
 # --- 2. CONFIGURATION ---
 TOURS = {
     "Itzulia Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec", "id": "5"},
-    "Volta Ciclista a Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfycbxXHl_6a4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec", "id": "4"},
+    "Volta Ciclista a Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec", "id": "4"},
     "Ronde van Vlaanderen (3)": {"url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec", "id": "3"},
     "Tirreno - Adriatico (2)": {"url": "https://script.google.com/macros/s/AKfycbwxNaL9swEDBUU3VqOQ4vDgj4BDCVd1-n0QVs4nUCKSzZTtxD54r6pVliV_uqNobzObaA/exec", "id": "2"},
     "Paris-Nice (1)": {"url": "https://script.google.com/macros/s/AKfycbyxixETwMCar087CvsXG6uTiYIUbm9TX9kFKCWzIHOCUURemBR2oVVCB15JU32dFwYY/exec", "id": "1"}
@@ -148,13 +148,22 @@ else:
             for lit in letters:
                 try:
                     res = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.{lit}.{last_stage}", timeout=15).json()
+                    
                     def get_top(key):
                         lst = res.get(key, [])
-                        return {"name": lst[0]["name"], "team": lst[0].get("teamName", lst[0].get("team"))} if lst else {"name": "No Winner", "team": "-"}
+                        return {"name": lst[0]["name"], "team": lst[0].get("teamName", lst[0].get("team", ""))} if lst else {"name": "N/A", "team": "-"}
+
+                    def get_top_team(key):
+                        lst = res.get(key, [])
+                        # Prende il nome del miglior team (Cella M81 mappata nel JSON)
+                        return {"name": lst[0].get("teamName", lst[0].get("team", "N/A")), "team": "BEST TEAM"} if lst else {"name": "N/A", "team": "-"}
+
                     all_final_results.append({
                         "group": lit, "stage": last_stage,
-                        "yellow": get_top("generalClassification"), "green": get_top("sprintClassification"),
-                        "polkadot": get_top("mountainClassification"), "white": get_top("tpClassification")
+                        "yellow": get_top("generalClassification"), 
+                        "green": get_top("sprintClassification"),
+                        "polkadot": get_top("mountainClassification"), 
+                        "white": get_top_team("teamTimeClassification") # CORREZIONE: Maglia Bianca = Miglior Team
                     })
                 except: continue
             return all_final_results
@@ -171,7 +180,7 @@ else:
                 <div><img src="{get_jersey_icon('yellow')}" width="30"><br>Final GC</div>
                 <div><img src="{get_jersey_icon('green')}" width="30"><br>Final Points</div>
                 <div><img src="{get_jersey_icon('polkadot')}" width="30"><br>Final KOM</div>
-                <div><img src="{get_jersey_icon('white')}" width="30"><br>Final TP</div>
+                <div><img src="{get_jersey_icon('white')}" width="30"><br>Best Team</div>
             </div>
         """, unsafe_allow_html=True)
 
