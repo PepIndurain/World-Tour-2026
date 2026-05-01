@@ -4,54 +4,53 @@ import pandas as pd
 
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 
-# --- INSERISCI QUI L'URL CHE HAI COPIATO (quello che finisce con /exec) ---
+# URL COMPLETO (Sostituisci questo)
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec"
 
 st.title("🚴 World Tour Cycling Dashboard")
 
-# Barra laterale per inserire il codice gara
-st.sidebar.header("Configurazione Gara")
-code_input = st.sidebar.text_input("Inserisci Codice Gara (es: 26.5.C.3)", "26.5.C.3")
+st.sidebar.header("Navigazione Gara")
+code_input = st.sidebar.text_input("Codice Gara (es: 26.5.C.3)", "26.5.C.3")
 
-if st.sidebar.button("Aggiorna Classifiche"):
-    # Chiamata al tuo script Google
-    with st.spinner('Pescando i dati dal foglio ufficiale...'):
+if st.sidebar.button("Carica Dati"):
+    with st.spinner('Accesso al database ufficiale in corso...'):
         try:
-            # Inviamo il codice al tuo script via URL
+            # Chiamata API
             response = requests.get(f"{WEB_APP_URL}?code={code_input}")
             data = response.json()
 
             if "error" in data:
-                st.error(data["error"])
+                st.error(f"Errore dal foglio: {data['error']}")
             else:
-                st.success(f"Dati caricati per: {data['currentCode']}")
+                st.success(f"Visualizzazione: {data.get('currentCode', 'Dati caricati')}")
                 
-                # Creazione Tab per le varie classifiche
-                t1, t2, t3, t4 = st.tabs(["🏆 Generale", "🏁 Sprint/Mountain", "👥 Team", "🚀 Next Stage"])
+                # Creazione Tab
+                t1, t2, t3, t4 = st.tabs(["🏆 Classifiche Individuali", "🏁 Risultati Tappa", "👥 Team", "🚀 Next Stage"])
 
                 with t1:
-                    st.subheader("Classifica Generale")
-                    df_gen = pd.DataFrame(data["generalClassification"])
-                    st.table(df_gen[['rank', 'player', 'team', 'tourPts', 'bonusWtp']])
-
-                with t2:
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.subheader("🔴 Montagna")
-                        st.table(pd.DataFrame(data["mountainClassification"])[['rank', 'player', 'tourPts']])
+                        st.subheader("🟡 Generale")
+                        st.dataframe(pd.DataFrame(data["generalClassification"]), use_container_width=True, hide_index=True)
                     with col2:
-                        st.subheader("🟢 Sprint")
-                        st.table(pd.DataFrame(data["sprintClassification"])[['rank', 'player', 'tourPts']])
+                        st.subheader("🔴 Montagna")
+                        st.dataframe(pd.DataFrame(data["mountainClassification"]), use_container_width=True, hide_index=True)
+
+                with t2:
+                    st.subheader("🏁 Risultati di Tappa")
+                    st.dataframe(pd.DataFrame(data["stageResults"]), use_container_width=True, hide_index=True)
+                    st.subheader("🟢 Sprint")
+                    st.dataframe(pd.DataFrame(data["sprintClassification"]), use_container_width=True, hide_index=True)
 
                 with t3:
-                    st.subheader("Classifica Squadre (Time)")
-                    st.table(pd.DataFrame(data["teamTimeClassification"])[['rank', 'team', 'tourTimes']])
+                    st.subheader("👥 Classifica Squadre")
+                    st.dataframe(pd.DataFrame(data["teamTimeClassification"]), use_container_width=True, hide_index=True)
 
                 with t4:
-                    st.subheader("Griglia di partenza prossima tappa")
-                    st.table(pd.DataFrame(data["nextStageGrid"])[['grid', 'player', 'teamName', 'e2']])
+                    st.subheader("🚀 Griglia Prossima Tappa")
+                    st.dataframe(pd.DataFrame(data["nextStageGrid"]), use_container_width=True, hide_index=True)
 
         except Exception as e:
-            st.error(f"Errore di connessione: {e}")
+            st.error(f"Errore di connessione. Verifica che il Web App sia attivo. Dettaglio: {e}")
 else:
-    st.info("Inserisci il codice della gara a sinistra e clicca su 'Aggiorna Classifiche'")
+    st.info("Inserisci il codice e clicca su Carica Dati. Il foglio Excel lavorerà per te!")
