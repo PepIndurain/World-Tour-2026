@@ -9,7 +9,7 @@ st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 # --- 1. FIXED CSS: LARGE TABLE FONT & PROTECTED ICONS ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;500;600&display=swap');
 
     /* Apply font only to text elements, avoiding icons */
     html, body, p, div:not([data-testid="stIcon"]), label, h1, h2, h3 {
@@ -24,25 +24,25 @@ st.markdown("""
 
     /* Titles: Bold and Black */
     h1, h2, h3 { 
-        font-weight: 700 !important; 
+        font-weight: 600 !important; 
     }
 
     /* SPECIFIC FOR TABLES: Make Rider names and data pop */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
         font-size: 1.15rem !important; /* Larger font for rows */
         color: #000000 !important;
-        font-weight: 500 !important;
+        font-weight: 400 !important;
     }
 
     /* Sidebar Labels */
     [data-testid="stWidgetLabel"] p {
-        font-weight: 600 !important;
+        font-weight: 500 !important;
         font-size: 1rem !important;
     }
 
     /* Tab headers */
     button[data-baseweb="tab"] p {
-        font-weight: 700 !important;
+        font-weight: 600 !important;
         font-size: 1rem !important;
     }
     </style>
