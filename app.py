@@ -6,15 +6,16 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. SUPER CONTRAST CSS: ULTRA BLACK & BOLD TABLES ---
+# --- 1. ENHANCED CSS: RED HEADER & CLEAN TYPOGRAPHY ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    /* Global text: Force PURE BLACK */
-    html, body, p, div, label {
+    /* Global text: Pure black, Inter font */
+    html, body, p, div:not([data-testid="stIcon"]), label {
         font-family: 'Inter', sans-serif !important;
         color: #000000 !important;
+        font-weight: 400 !important;
     }
 
     /* Restore Streamlit Icons */
@@ -23,68 +24,58 @@ st.markdown("""
     /* CUSTOM RED HEADER BOX */
     .main-header {
         background: linear-gradient(95deg, #FF4B4B 0%, #C1272D 100%);
-        padding: 35px;
+        padding: 30px;
         border-radius: 15px;
         text-align: center;
         margin-bottom: 30px;
-        box-shadow: 0 10px 25px rgba(193, 39, 45, 0.3);
+        box-shadow: 0 10px 20px rgba(193, 39, 45, 0.2);
     }
     .main-header h1 {
         color: #FFFFFF !important;
         font-weight: 800 !important;
-        font-size: 3.2rem !important;
+        font-size: 3rem !important;
         margin: 0 !important;
         letter-spacing: -1px;
         text-transform: uppercase;
     }
     .main-header p {
-        color: rgba(255, 255, 255, 0.95) !important;
+        color: rgba(255, 255, 255, 0.9) !important;
         font-weight: 500 !important;
         margin-top: 10px !important;
-        font-size: 1.2rem !important;
+        font-size: 1.1rem !important;
     }
 
-    /* INPUTS & SELECTBOXES: Force high contrast */
+    /* INPUTS & SELECTBOXES */
     div[data-baseweb="select"] > div {
-        font-weight: 700 !important;
+        font-weight: 600 !important;
         color: #000000 !important;
     }
     .stTextInput input {
-        font-weight: 700 !important;
+        font-weight: 600 !important;
         color: #000000 !important;
     }
 
-    /* TABLES: ULTRA READABILITY FIX */
-    /* Target cells, headers and every piece of text in the grid */
-    [data-testid="stDataFrame"] td, 
-    [data-testid="stDataFrame"] th, 
-    [data-testid="stDataFrame"] [role="gridcell"] {
-        font-size: 1.2rem !important; /* Larger font */
-        color: #000000 !important;   /* Pure Black */
-        font-weight: 600 !important;   /* Semi-Bold for maximum PC visibility */
+    /* TABLES: Large font */
+    [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
+        font-size: 1.15rem !important; 
+        color: #000000 !important;
+        font-weight: 400 !important;
     }
 
     /* Sidebar Labels */
     [data-testid="stWidgetLabel"] p {
-        font-weight: 700 !important;
-        font-size: 1rem !important;
-        color: #000000 !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
     }
 
     /* Tabs Styling */
     button[data-baseweb="tab"] p {
-        font-weight: 600 !important;
-        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+        font-size: 1rem !important;
     }
     button[aria-selected="true"] p {
-        font-weight: 800 !important;
-        color: #C1272D !important;
-    }
-
-    /* Alert and success messages text */
-    .stAlert p {
-        color: #000000 !important;
         font-weight: 700 !important;
+        color: #C1272D !important; /* Red accent for active tab */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -96,7 +87,7 @@ TOURS = {
         "id": "5"
     },
     "Volta Ciclista a Catalunya (4)": {
-        "url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
+        "url": "https://script.google.com/macros/s/AKfycbxXHl_6a4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
         "id": "4"
     },
     "Ronde van Vlaanderen (3)": {
@@ -157,20 +148,12 @@ def get_leader_emojis(val):
     return ""
 
 def style_cycling_rows(row):
-    """Styles the rows and ensures the text is BOLD BLACK for maximum contrast."""
     j = str(row['jersey_raw']).lower() if 'jersey_raw' in row else ''
-    # Default text style: Pure Black and Bold
-    text_style = 'color: #000000; font-weight: 700;'
-    
-    if 'yellow' in j: 
-        return [f'background-color: #FFF2CC; {text_style}'] * len(row)
-    if 'green' in j: 
-        return [f'background-color: #E2F0D9; {text_style}'] * len(row)
-    if 'polkadot' in j: 
-        return [f'background-color: #FBE2E2; {text_style}'] * len(row)
-    if 'white' in j: 
-        return [f'background-color: #F2F2F2; {text_style}'] * len(row)
-    return [text_style] * len(row)
+    if 'yellow' in j: return ['background-color: #FFF2CC'] * len(row)
+    if 'green' in j: return ['background-color: #E2F0D9'] * len(row)
+    if 'polkadot' in j: return ['background-color: #FBE2E2'] * len(row)
+    if 'white' in j: return ['background-color: #F2F2F2'] * len(row)
+    return [''] * len(row)
 
 def trigger_loading():
     st.session_state.is_loading = True
@@ -195,6 +178,7 @@ year_code = st.sidebar.text_input("Year", "26", disabled=st.session_state.is_loa
 tour_id = TOURS[selected_tour_name]["id"]
 url_attuale = TOURS[selected_tour_name]["url"]
 
+# RESET ON TOUR CHANGE
 if st.session_state.prev_tour != selected_tour_name:
     st.session_state.prev_tour = selected_tour_name
     st.session_state.current_group = "A"
@@ -231,6 +215,8 @@ if st.session_state.is_loading or (selected_group != st.session_state.current_gr
     st.rerun()
 
 # --- 7. MAIN INTERFACE ---
+
+# Custom Styled Header
 st.markdown(f"""
     <div class="main-header">
         <h1>World Tour Dashboard</h1>
@@ -259,8 +245,6 @@ elif data:
                     df['leaders'] = df['leaders'].apply(get_leader_emojis)
                 
                 df = df.rename(columns=COLUMN_MAP)
-                
-                # Applicazione stile con forzatura colore NERO e GRASSETTO
                 st.dataframe(df.style.apply(style_cycling_rows, axis=1), 
                              use_container_width=True, hide_index=True,
                              column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None})
