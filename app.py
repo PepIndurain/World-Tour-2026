@@ -85,7 +85,8 @@ def get_jersey_icon(color):
 
 def style_rows(row):
     text_style = 'color: #000000; font-weight: 700;'
-    j = str(row['jersey_raw']).lower() if 'jersey_raw' in row else ''
+    # Cerchiamo il colore direttamente nella stringa (che sia un nome semplice o un URL)
+    j = str(row['jersey']).lower() if 'jersey' in row else ''
     bg = ""
     if 'yellow' in j: bg = "#FFF2CC"
     elif 'green' in j: bg = "#E2F0D9"
@@ -132,9 +133,20 @@ if page == "Live Dashboard":
                 df = pd.DataFrame(d.get(k, [])).fillna("")
                 if not df.empty:
                     if 'jersey' in df.columns:
-                        df['jersey_raw'] = df['jersey']
-                        df['jersey'] = df['jersey_raw'].apply(lambda x: get_jersey_icon(x.split('-')[0]) if x else "")
-                    st.dataframe(df.style.apply(style_rows, axis=1), use_container_width=True, hide_index=True, column_config={"jersey": st.column_config.ImageColumn()})
+                        # Trasformiamo la colonna 'jersey' direttamente in URL
+                        # Il nome della colonna deve coincidere con quello in column_config
+                        df['jersey'] = df['jersey'].apply(lambda x: get_jersey_icon(x.split('-')[0]) if x else "")
+                    if 'leaders' in df.columns:
+                        df['leaders'] = df['leaders'].apply(get_leader_emojis)
+                    
+                    st.dataframe(
+                        df.style.apply(style_rows, axis=1), 
+                        use_container_width=True, 
+                        hide_index=True, 
+                        column_config={
+                            "jersey": st.column_config.ImageColumn("jersey")
+                        }
+                    )
 
 elif page == "🏆 Hall of Fame":
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1><p>Final Tour Winners by Group</p></div>', unsafe_allow_html=True)
