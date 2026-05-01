@@ -19,6 +19,10 @@ TOURS = {
         "url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec",
         "id": "3"
     },   
+    "Tirreno - Adriatico (2)": {
+        "url": "https://script.google.com/macros/s/AKfycbwxNaL9swEDBUU3VqOQ4vDgj4BDCVd1-n0QVs4nUCKSzZTtxD54r6pVliV_uqNobzObaA/exec",
+        "id": "2"
+    },
 }
 
 # --- 2. GITHUB IMAGES CONFIGURATION ---
