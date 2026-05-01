@@ -18,11 +18,15 @@ BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/m
 # --- FUNZIONI DI SUPPORTO ---
 def get_jersey_url(val):
     v = str(val).lower()
+    # Se la cella è vuota o contiene 'none', restituiamo una stringa vuota, non None
+    if not v or v == 'none' or v == 'nan':
+        return ""
+    
     if 'yellow' in v: return f"{BASE_IMAGE_URL}yellow-jersey.png"
     if 'green' in v: return f"{BASE_IMAGE_URL}green-jersey.png"
     if 'polkadot' in v: return f"{BASE_IMAGE_URL}polkadot-jersey.png"
     if 'white' in v: return f"{BASE_IMAGE_URL}white-jersey.png"
-    return None
+    return ""
 
 def get_leader_emojis(val):
     if isinstance(val, list):
@@ -60,7 +64,7 @@ codice_gara = st.sidebar.text_input("Codice Gara (es: 26.5.A.2)", "26.5.A.2")
 URL_ATTUALE = TOURS[nome_tour]
 
 if codice_gara:
-    with st.spinner(f'Caricamento dati da {nome_tour}...'):
+    with st.spinner('Pulizia dati in corso...'):
         try:
             response = requests.get(f"{URL_ATTUALE}?code={codice_gara}")
             data = response.json()
@@ -74,8 +78,12 @@ if codice_gara:
 
                 def render_table(key, title, tab_idx):
                     with tabs[tab_idx]:
+                        # Creiamo il DataFrame e riempiamo i valori mancanti globalmente
                         df = pd.DataFrame(data.get(key, []))
                         if not df.empty:
+                            # Riempiamo ogni cella vuota con una stringa vuota per evitare i "None"
+                            df = df.fillna("")
+
                             if 'jersey' in df.columns:
                                 df['jersey_raw'] = df['jersey']
                                 df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
@@ -105,4 +113,4 @@ if codice_gara:
                 render_table("nextStageGrid", "Griglia Prossima Tappa", 6)
 
         except Exception as e:
-            st.error(f"Errore di connessione: {e}")
+            st.error(f"Errore: {e}")
