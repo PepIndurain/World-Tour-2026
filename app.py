@@ -158,7 +158,7 @@ else:
                         "yellow": get_top("generalClassification"), 
                         "green": get_top("sprintClassification"),
                         "polkadot": get_top("mountainClassification"), 
-                        "white": get_top("tpClassification") # CORREZIONE: Maglia Bianca = Best Team (M81)
+                        "white": get_top("teamstimeClassification") # CORREZIONE: Maglia Bianca = Best Team (M81)
                     })
                 except: continue
             return all_final_results
