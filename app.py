@@ -14,7 +14,10 @@ TOURS = {
     "Volta Ciclista a Catalunya (4)": {
         "url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
         "id": "4"
-    }
+    },
+    "Ronde van Vlaanderen (3)": {
+        "url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec",
+        "id": "3"
 }
 
 # --- 2. GITHUB IMAGES CONFIGURATION ---
