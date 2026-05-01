@@ -5,7 +5,7 @@ import pandas as pd
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 
 # --- INSERISCI QUI L'URL CHE HAI COPIATO (quello che finisce con /exec) ---
-WEB_APP_URL = "AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec"
 
 st.title("🚴 World Tour Cycling Dashboard")
 
