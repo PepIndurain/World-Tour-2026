@@ -2,100 +2,68 @@ import streamlit as st
 import requests
 import pandas as pd
 
-# Configurazione pagina
 st.set_page_config(layout="wide", page_title="Cycling Hub")
 
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec"
+# --- 1. CONFIGURAZIONE DEI TOUR (Aggiungi qui i tuoi file futuri) ---
+# Ogni volta che hai un nuovo Tour, aggiungi una riga qui sotto.
+TOURS = {
+    "Itzulia Basque Country": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
+    "Volta Ciclista (Esempio)": "URL_DI_UN_ALTRO_SCRIPT_SE_ESISTE",
+}
 
 st.title("🚴 World Tour Cycling Dashboard")
 
-# --- BARRA LATERALE PER IL CODICE ---
+# --- 2. BARRA LATERALE ---
 st.sidebar.header("Impostazioni")
-code_input = st.sidebar.text_input("Codice Gara (es: 26.5.A.2)", "26.5.A.2")
-btn_carica = st.sidebar.button("Aggiorna Dati")
 
-if btn_carica or "data_cache" in st.session_state:
-    with st.spinner('Caricamento in corso...'):
+# Menu a tendina per il nome del file (Tour)
+nome_tour = st.sidebar.selectbox("Seleziona il Tour", list(TOURS.keys()))
+
+# Input per il codice gara (Premendo INVIO si aggiorna da solo)
+codice_gara = st.sidebar.text_input("Codice Gara (es: 26.5.A.2)", "26.5.A.2")
+
+# Usiamo l'URL corrispondente al tour scelto
+URL_ATTUALE = TOURS[nome_tour]
+
+# --- 3. CARICAMENTO DATI (Reattivo all'INVIO) ---
+# Non usiamo più il tasto "Aggiorna": Streamlit ricarica quando cambi testo e premi Invio
+if codice_gara:
+    with st.spinner(f'Caricamento dati da {nome_tour}...'):
         try:
-            # Se è la prima volta o è stato premuto il tasto, scarichiamo i dati
-            if btn_carica or "data_cache" not in st.session_state:
-                response = requests.get(f"{WEB_APP_URL}?code={code_input}")
-                st.session_state.data_cache = response.json()
-            
-            data = st.session_state.data_cache
+            # Chiamata al Google Script
+            response = requests.get(f"{URL_ATTUALE}?code={codice_gara}")
+            data = response.json()
 
             if "error" in data:
-                st.error(data["error"])
+                st.error(f"Nota: {data['error']}")
             else:
-                st.info(f"📍 {data.get('currentCode', '')}")
+                st.success(f"Visualizzazione: {data.get('currentCode', '')}")
 
-                # --- MENU ORIZZONTALE SCORREVOLE (TABS) ---
-                # Definiamo i titoli delle schede con le Emoji
+                # --- 4. VISUALIZZAZIONE TAB (Menu scorrevole) ---
                 nomi_tab = [
                     "🏁 Tappa", "🟡 Generale", "🟢 Sprint", "🔴 Montagna", 
                     "🔵 Punti TP", "👥 Team Tempo", "👥 Team TP", "🚀 Griglia"
                 ]
                 
-                # Creiamo i tab: Streamlit li mette in fila in alto
                 tabs = st.tabs(nomi_tab)
 
-                # --- TAB 1: RISULTATI TAPPA ---
-                with tabs[0]:
-                    st.header("🏁 Risultati della Tappa")
-                    df = pd.DataFrame(data["stageResults"])
+                # Funzione per mostrare le tabelle
+                def mostra_tabella(chiave_json, titolo):
+                    df = pd.DataFrame(data.get(chiave_json, []))
                     if not df.empty:
+                        st.header(titolo)
                         st.dataframe(df, use_container_width=True, hide_index=True)
+                    else:
+                        st.info(f"Nessun dato per {titolo}")
 
-                # --- TAB 2: CLASSIFICA GENERALE ---
-                with tabs[1]:
-                    st.header("🟡 Classifica Generale")
-                    df = pd.DataFrame(data["generalClassification"])
-                    if not df.empty:
-                        st.dataframe(df, use_container_width=True, hide_index=True)
-
-                # --- TAB 3: SPRINT ---
-                with tabs[2]:
-                    st.header("🟢 Classifica Sprint")
-                    df = pd.DataFrame(data["sprintClassification"])
-                    if not df.empty:
-                        st.dataframe(df, use_container_width=True, hide_index=True)
-
-                # --- TAB 4: MONTAGNA ---
-                with tabs[3]:
-                    st.header("🔴 Classifica Montagna")
-                    df = pd.DataFrame(data["mountainClassification"])
-                    if not df.empty:
-                        st.dataframe(df, use_container_width=True, hide_index=True)
-
-                # --- TAB 5: PUNTI TP ---
-                with tabs[4]:
-                    st.header("🔵 Classifica Punti TP")
-                    df = pd.DataFrame(data["tpClassification"])
-                    if not df.empty:
-                        st.dataframe(df, use_container_width=True, hide_index=True)
-
-                # --- TAB 6: TEAM TEMPO ---
-                with tabs[5]:
-                    st.header("👥 Team Time Classification")
-                    df = pd.DataFrame(data["teamTimeClassification"])
-                    if not df.empty:
-                        st.dataframe(df, use_container_width=True, hide_index=True)
-
-                # --- TAB 7: TEAM TP ---
-                with tabs[6]:
-                    st.header("👥 Team TP Classification")
-                    df = pd.DataFrame(data["teamTPClassification"])
-                    if not df.empty:
-                        st.dataframe(df, use_container_width=True, hide_index=True)
-
-                # --- TAB 8: GRIGLIA ---
-                with tabs[7]:
-                    st.header("🚀 Griglia Prossima Tappa")
-                    df = pd.DataFrame(data["nextStageGrid"])
-                    if not df.empty:
-                        st.dataframe(df, use_container_width=True, hide_index=True)
+                with tabs[0]: mostra_tabella("stageResults", "Risultati Tappa")
+                with tabs[1]: mostra_tabella("generalClassification", "Classifica Generale")
+                with tabs[2]: mostra_tabella("sprintClassification", "Classifica Sprint")
+                with tabs[3]: mostra_tabella("mountainClassification", "Classifica Montagna")
+                with tabs[4]: mostra_tabella("tpClassification", "Classifica Punti TP")
+                with tabs[5]: mostra_tabella("teamTimeClassification", "Team Time Classification")
+                with tabs[6]: mostra_tabella("teamTPClassification", "Team TP Classification")
+                with tabs[7]: mostra_tabella("nextStageGrid", "Griglia Prossima Tappa")
 
         except Exception as e:
-            st.error(f"Errore di connessione: {e}")
-else:
-    st.info("Inserisci il codice gara a sinistra per iniziare.")
+            st.error("Inserisci un codice valido o controlla la connessione al file.")
