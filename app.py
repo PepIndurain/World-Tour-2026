@@ -5,7 +5,6 @@ import pandas as pd
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 
 # --- 1. TOUR CONFIGURATION ---
-# Quando avrai l'URL della Volta, sostituisci 'YOUR_VOLTA_URL_HERE'
 TOURS = {
     "Itzulia Basque Country": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
     "Volta Ciclista a Catalunya": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
@@ -18,26 +17,12 @@ BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/m
 
 # --- DICTIONARY FOR COLUMN TRANSLATION ---
 COLUMN_MAP = {
-    "rank": "Rank",
-    "trend": "Trend",
-    "player": "Rider",
-    "team": "Team",
-    "jersey": "Jersey",
-    "type": "Type",
-    "name": "Rider Name",
-    "bonusSeconds": "Bonus (s)",
-    "stageTime": "Stage Time",
-    "wtp": "WTP",
-    "leaders": "Leaders",
-    "stagePts": "Stage Pts",
-    "tourPts": "Total Pts",
-    "bonusWtp": "Bonus WTP",
-    "currentWtp": "Current WTP",
-    "stageTimes": "Stage Time",
-    "tourTimes": "Total Time",
-    "grid": "Start Pos",
-    "teamName": "Team Name",
-    "e2": "Energy"
+    "rank": "Rank", "trend": "Trend", "player": "Rider", "team": "Team",
+    "jersey": "Jersey", "type": "Type", "name": "Rider Name",
+    "bonusSeconds": "Bonus (s)", "stageTime": "Stage Time", "wtp": "WTP",
+    "leaders": "Leaders", "stagePts": "Stage Pts", "tourPts": "Total Pts",
+    "bonusWtp": "Bonus WTP", "currentWtp": "Current WTP", "stageTimes": "Stage Time",
+    "tourTimes": "Total Time", "grid": "Start Pos", "teamName": "Team Name", "e2": "Energy"
 }
 
 # --- SUPPORT FUNCTIONS ---
@@ -80,66 +65,65 @@ def style_cycling_rows(row):
 st.title("🚴 World Tour Cycling Dashboard")
 
 st.sidebar.header("Settings")
+
+# 1. Selezione Tour
 nome_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()))
-codice_gara = st.sidebar.text_input("Race Code (e.g., 26.5.A.2)", "26.5.A.2")
+
+# 2. Selezione Parametri per comporre il codice
+st.sidebar.subheader("Race Selection")
+prefix = st.sidebar.text_input("Season Code", "26.5") # Es. 26.5
+gruppo = st.sidebar.selectbox("Select Group", ["A", "B", "C", "D", "E", "F"])
+tappa = st.sidebar.selectbox("Select Stage", [str(i) for i in range(1, 11)])
+
+# Composizione automatica del codice (es: 26.5.A.2)
+codice_finale = f"{prefix}.{gruppo}.{tappa}"
+st.sidebar.write(f"**Final Code:** `{codice_finale}`")
 
 URL_ATTUALE = TOURS[nome_tour]
 
-if codice_gara:
-    with st.spinner('Loading official data...'):
-        try:
-            response = requests.get(f"{URL_ATTUALE}?code={codice_gara}")
-            data = response.json()
+# Carichiamo i dati automaticamente quando cambia una selezione
+with st.spinner(f'Loading {nome_tour} - Stage {tappa}...'):
+    try:
+        response = requests.get(f"{URL_ATTUALE}?code={codice_finale}")
+        data = response.json()
 
-            if "error" in data:
-                st.error(data["error"])
-            else:
-                st.info(f"📍 Stage: {data.get('currentCode', '')}")
-                
-                tabs = st.tabs([
-                    "🏁 Stage Results", 
-                    "🟡 General (GC)", 
-                    "🟢 Points", 
-                    "🔴 Mountain", 
-                    "🔵 TP Points", 
-                    "👥 Teams", 
-                    "🚀 Next Grid"
-                ])
+        if "error" in data:
+            st.error(f"Data not available yet: {data['error']}")
+        else:
+            st.info(f"📍 Stage: {data.get('currentCode', '')}")
+            
+            tabs = st.tabs([
+                "🏁 Stage Results", "🟡 General (GC)", "🟢 Points", 
+                "🔴 Mountain", "🔵 TP Points", "👥 Teams", "🚀 Next Grid"
+            ])
 
-                def render_table(key, title, tab_idx):
-                    with tabs[tab_idx]:
-                        df = pd.DataFrame(data.get(key, []))
-                        if not df.empty:
-                            df = df.fillna("")
+            def render_table(key, title, tab_idx):
+                with tabs[tab_idx]:
+                    df = pd.DataFrame(data.get(key, []))
+                    if not df.empty:
+                        df = df.fillna("")
+                        if 'jersey' in df.columns:
+                            df['jersey_raw'] = df['jersey']
+                            df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
+                        if 'leaders' in df.columns:
+                            df['leaders'] = df['leaders'].apply(get_leader_emojis)
+                        
+                        df = df.rename(columns=COLUMN_MAP)
+                        styled_df = df.style.apply(style_cycling_rows, axis=1)
+                        
+                        st.header(title)
+                        st.dataframe(
+                            styled_df, use_container_width=True, hide_index=True,
+                            column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None}
+                        )
+            
+            render_table("stageResults", "Stage Classification", 0)
+            render_table("generalClassification", "General Classification (GC)", 1)
+            render_table("sprintClassification", "Points Classification", 2)
+            render_table("mountainClassification", "Mountains Classification (KOM)", 3)
+            render_table("tpClassification", "TP Points Classification", 4)
+            render_table("teamTimeClassification", "Team Classification", 5)
+            render_table("nextStageGrid", "Next Stage Starting Grid", 6)
 
-                            if 'jersey' in df.columns:
-                                df['jersey_raw'] = df['jersey']
-                                df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
-                            
-                            if 'leaders' in df.columns:
-                                df['leaders'] = df['leaders'].apply(get_leader_emojis)
-                            
-                            df = df.rename(columns=COLUMN_MAP)
-                            styled_df = df.style.apply(style_cycling_rows, axis=1)
-                            
-                            st.header(title)
-                            st.dataframe(
-                                styled_df, 
-                                use_container_width=True, 
-                                hide_index=True,
-                                column_config={
-                                    "Jersey": st.column_config.ImageColumn("Jersey"),
-                                    "jersey_raw": None 
-                                }
-                            )
-                
-                render_table("stageResults", "Stage Classification", 0)
-                render_table("generalClassification", "General Classification (GC)", 1)
-                render_table("sprintClassification", "Points Classification", 2)
-                render_table("mountainClassification", "Mountains Classification (KOM)", 3)
-                render_table("tpClassification", "TP Points Classification", 4)
-                render_table("teamTimeClassification", "Team Classification", 5)
-                render_table("nextStageGrid", "Next Stage Starting Grid", 6)
-
-        except Exception as e:
-            st.error(f"Connection Error: {e}")
+    except Exception as e:
+        st.error(f"Connection Error: {e}")
