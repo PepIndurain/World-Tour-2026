@@ -18,11 +18,11 @@ st.markdown("""
     }
 
     /* Titoli neri e molto spessi */
-    h1, h2, h3 { color: #000000 !important; font-weight: 700 !important; }
+    h1, h2, h3 { color: #000000 !important; font-weight: 500 !important; }
 
     /* Etichette dei widget nella sidebar */
     [data-testid="stWidgetLabel"] p {
-        font-weight: 700 !important;
+        font-weight: 300 !important;
         font-size: 1.1rem !important;
         color: #000000 !important;
     }
@@ -30,18 +30,18 @@ st.markdown("""
     /* Testo dentro i menu a tendina */
     div[data-baseweb="select"] > div {
         color: #000000 !important;
-        font-weight: 700 !important;
+        font-weight: 300 !important;
     }
 
     /* Titoli dei Tab neri e grandi */
     button[data-baseweb="tab"] p {
-        font-weight: 800 !important;
+        font-weight: 600 !important;
         font-size: 1.1rem !important;
         color: #000000 !important;
     }
 
     /* Messaggi di Alert più visibili */
-    .stAlert p { font-weight: 700 !important; color: #000000 !important; }
+    .stAlert p { font-weight: 500 !important; color: #000000 !important; }
     </style>
     """, unsafe_allow_html=True)
 
