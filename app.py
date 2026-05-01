@@ -5,7 +5,7 @@ import string
 
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 
-# --- 1. CONFIGURAZIONE TOUR ---
+# --- 1. TOUR CONFIGURATION ---
 TOURS = {
     "Itzulia Basque Country (5)": {
         "url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
@@ -16,7 +16,7 @@ TOURS = {
         "id": "4"
     },
     "Ronde van Vlaanderen (3)": {
-        "url": "https://script.google.com/macros/s/AKfycbbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec",
+        "url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec",
         "id": "3"
     },   
     "Tirreno - Adriatico (2)": {
@@ -29,6 +29,11 @@ TOURS = {
     },
 }
 
+# --- 2. GITHUB IMAGES & MAPPING ---
+GITHUB_USER = "PepIndurain"
+REPO_NAME = "World-Tour-2026"
+BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/main/"
+
 COLUMN_MAP = {
     "rank": "Rank", "trend": "Trend", "player": "Rider", "team": "Team",
     "jersey": "Jersey", "type": "Type", "name": "Rider Name",
@@ -38,126 +43,143 @@ COLUMN_MAP = {
     "tourTimes": "Total Time", "grid": "Start Pos", "teamName": "Team Name", "e2": "Energy"
 }
 
-BASE_IMAGE_URL = "https://raw.githubusercontent.com/PepIndurain/World-Tour-2026/main/"
-
-# --- FUNZIONI DI SUPPORTO ---
+# --- SUPPORT FUNCTIONS ---
 def get_jersey_url(val):
     v = str(val).lower()
     if not v or v in ['none', 'nan', '']: return ""
-    jerseys = {'yellow': 'yellow-jersey.png', 'green': 'green-jersey.png', 
-               'polkadot': 'polkadot-jersey.png', 'white': 'white-jersey.png'}
-    for k, img in jerseys.items():
-        if k in v: return f"{BASE_IMAGE_URL}{img}"
+    if 'yellow' in v: return f"{BASE_IMAGE_URL}yellow-jersey.png"
+    if 'green' in v: return f"{BASE_IMAGE_URL}green-jersey.png"
+    if 'polkadot' in v: return f"{BASE_IMAGE_URL}polkadot-jersey.png"
+    if 'white' in v: return f"{BASE_IMAGE_URL}white-jersey.png"
     return ""
 
 def get_leader_emojis(val):
-    mapping = {'yellow': "🟡", 'green': "🟢", 'polkadot': "🔴", 'white': "⚪"}
     if isinstance(val, list):
-        return " ".join([mapping.get(c.lower(), "") for c in val])
-    return mapping.get(str(val).lower(), "")
+        emojis = []
+        for color in val:
+            c = str(color).lower()
+            if 'yellow' in c: emojis.append("🟡")
+            elif 'green' in c: emojis.append("🟢")
+            elif 'polkadot' in c: emojis.append("🔴")
+            elif 'white' in c: emojis.append("⚪")
+        return " ".join(emojis)
+    else:
+        c = str(val).lower()
+        if 'yellow' in c: return "🟡"
+        if 'green' in c: return "🟢"
+        if 'polkadot' in c: return "🔴"
+        if 'white' in c: return "⚪"
+    return ""
 
 def style_cycling_rows(row):
     j = str(row['jersey_raw']).lower() if 'jersey_raw' in row else ''
-    colors = {'yellow': '#FFF2CC', 'green': '#E2F0D9', 'polkadot': '#FBE2E2', 'white': '#F2F2F2'}
-    for k, color in colors.items():
-        if k in j: return [f'background-color: {color}'] * len(row)
+    if 'yellow' in j: return ['background-color: #FFF2CC'] * len(row)
+    if 'green' in j: return ['background-color: #E2F0D9'] * len(row)
+    if 'polkadot' in j: return ['background-color: #FBE2E2'] * len(row)
+    if 'white' in j: return ['background-color: #F2F2F2'] * len(row)
     return [''] * len(row)
 
-# --- LOGICA DI CARICAMENTO DATI ---
 @st.cache_data(show_spinner=False)
 def fetch_data(url, code):
     try:
-        response = requests.get(f"{url}?code={code}", timeout=10)
+        response = requests.get(f"{url}?code={code}")
+        response.raise_for_status()
         return response.json()
     except Exception as e:
         return {"error": str(e)}
 
-# --- INTERFACCIA ---
+# --- SESSION STATE INITIALIZATION ---
+if "prev_tour" not in st.session_state:
+    st.session_state.prev_tour = None
+if "current_group" not in st.session_state:
+    st.session_state.current_group = "A"
+if "current_stage" not in st.session_state:
+    st.session_state.current_stage = "1"
+if "total_groups" not in st.session_state:
+    st.session_state.total_groups = 6
+if "total_stages" not in st.session_state:
+    st.session_state.total_stages = 3
+if "json_data" not in st.session_state:
+    st.session_state.json_data = {}
+
+# --- INTERFACE ---
 st.title("🚴 World Tour Cycling Dashboard")
-
-# Sidebar - Tournament Selection
 st.sidebar.header("Settings")
-selected_tour_name = st.sidebar.selectbox("Select Tour", list(TOURS.keys()), index=0)
 
-# Inizializziamo parametri di default se non esistono
-if "year" not in st.session_state: st.session_state.year = "26"
-if "current_group_idx" not in st.session_state: st.session_state.current_group_idx = 0
-if "current_stage_idx" not in st.session_state: st.session_state.current_stage_idx = 0
+# 1. Selezione Tour
+selected_tour_name = st.sidebar.selectbox("Select Tour", list(TOURS.keys()))
+year_code = st.sidebar.text_input("Year (e.g., 26)", "26")
 
-# Parametri Tour Corrente
-tour_info = TOURS[selected_tour_name]
-tour_url = tour_info["url"]
-tour_id = tour_info["id"]
-year_code = st.sidebar.text_input("Year", value=st.session_state.year)
+tour_id = TOURS[selected_tour_name]["id"]
+url_attuale = TOURS[selected_tour_name]["url"]
 
-# Mappatura Gruppi (A, B, C...)
-alphabet = list(string.ascii_uppercase)
+# --- LOGICA DI AGGIORNAMENTO DATI (FETCH) ---
+# Se l'utente cambia il Tour (o al primo caricamento assoluto)
+if st.session_state.prev_tour != selected_tour_name:
+    st.session_state.prev_tour = selected_tour_name
+    st.session_state.current_group = "A" # Resetta al Gruppo A
+    st.session_state.current_stage = "1" # Resetta alla Tappa 1
+    
+    codice_iniziale = f"{year_code}.{tour_id}.A.1"
+    
+    with st.spinner(f'Fetching initial data for {selected_tour_name}...'):
+        data = fetch_data(url_attuale, codice_iniziale)
+        st.session_state.json_data = data
+        
+        # Aggiorniamo i parametri totali dal JSON se esistono
+        if "error" not in data:
+            st.session_state.total_groups = data.get("totalGroups", 6)
+            st.session_state.total_stages = data.get("totalStages", 10)
 
-# --- PRIMA CHIAMATA (Per ottenere i metadati se non li abbiamo) ---
-# Usiamo un codice temporaneo o quello in session_state per capire i limiti (totalGroups/totalStages)
-temp_group = alphabet[st.session_state.current_group_idx]
-temp_stage = st.session_state.current_stage_idx + 1
-initial_code = f"{year_code}.{tour_id}.{temp_group}.{temp_stage}"
+# --- CREAZIONE MENU A TENDINA DINAMICI ---
+# Generiamo la lista di lettere (A, B, C...) in base a totalGroups
+group_options = list(string.ascii_uppercase)[:st.session_state.total_groups]
+# Generiamo la lista numerica (1, 2, 3...) in base a totalStages
+stage_options = [str(i) for i in range(1, st.session_state.total_stages + 1)]
 
-data = fetch_data(tour_url, initial_code)
+# Assicuriamoci che i valori correnti in session_state esistano nelle nuove opzioni (evita errori se passi da un tour lungo a uno corto)
+if st.session_state.current_group not in group_options:
+    st.session_state.current_group = group_options[0]
+if st.session_state.current_stage not in stage_options:
+    st.session_state.current_stage = stage_options[0]
+
+st.sidebar.subheader("Race Selection")
+
+# Disegniamo i widget. Se l'utente li tocca, il codice riparte dall'alto.
+selected_group = st.sidebar.selectbox("Select Group", group_options, index=group_options.index(st.session_state.current_group))
+selected_stage = st.sidebar.selectbox("Select Stage", stage_options, index=stage_options.index(st.session_state.current_stage))
+
+# Se l'utente ha modificato Gruppo o Tappa dai menu a tendina
+if selected_group != st.session_state.current_group or selected_stage != st.session_state.current_stage:
+    st.session_state.current_group = selected_group
+    st.session_state.current_stage = selected_stage
+    
+    nuovo_codice = f"{year_code}.{tour_id}.{selected_group}.{selected_stage}"
+    
+    with st.spinner(f'Fetching data for Group {selected_group}, Stage {selected_stage}...'):
+        data = fetch_data(url_attuale, nuovo_codice)
+        st.session_state.json_data = data
+
+codice_finale = f"{year_code}.{tour_id}.{st.session_state.current_group}.{st.session_state.current_stage}"
+st.sidebar.info(f"**Race Code:** `{codice_finale}`")
+
+# --- RENDER DEI DATI ---
+data = st.session_state.json_data
 
 if "error" in data:
-    st.error(f"Errore nel caricamento: {data['error']}")
+    st.error(f"Data not available: {data['error']}")
+elif not data:
+    st.warning("No data loaded. Please try again.")
 else:
-    # --- POPOLAMENTO DINAMICO DEI MENU ---
-    total_groups = data.get("totalGroups", 1)
-    total_stages = data.get("totalStages", 1)
+    st.info(f"📍 Stage: {data.get('currentCode', f'Group {st.session_state.current_group} - Stage {st.session_state.current_stage}')}")
     
-    st.sidebar.subheader("Race Selection")
-    
-    # Selettore Gruppo
-    group_options = alphabet[:total_groups]
-    selected_group = st.sidebar.selectbox(
-        "Select Group", 
-        group_options, 
-        index=min(st.session_state.current_group_idx, total_groups-1)
-    )
-    
-    # Selettore Tappa
-    stage_options = [i for i in range(1, total_stages + 1)]
-    selected_stage = st.sidebar.selectbox(
-        "Select Stage", 
-        stage_options, 
-        index=min(st.session_state.current_stage_idx, total_stages-1)
-    )
-
-    # Aggiorniamo session_state per mantenere la memoria
-    st.session_state.current_group_idx = group_options.index(selected_group)
-    st.session_state.current_stage_idx = stage_options.index(selected_stage)
-    
-    # Costruiamo il codice finale dopo la selezione dell'utente
-    final_code = f"{year_code}.{tour_id}.{selected_group}.{selected_stage}"
-    
-    # Se il codice finale è diverso da quello iniziale, rifacciamo la chiamata
-    if final_code != initial_code:
-        data = fetch_data(tour_url, final_code)
-
-    # --- VISUALIZZAZIONE DATI ---
-    st.sidebar.info(f"**Race Code:** `{final_code}`")
-    st.info(f"📍 Location: **{data.get('currentCode', 'N/A')}**")
-
     tabs = st.tabs([
         "🏁 Stage Results", "🟡 General (GC)", "🟢 Points", 
         "🔴 Mountain", "🔵 TP Points", "👥 Teams", "🚀 Next Grid"
     ])
 
-    keys = [
-        ("stageResults", "Stage Classification"),
-        ("generalClassification", "General Classification"),
-        ("sprintClassification", "Points Classification"),
-        ("mountainClassification", "Mountains Classification"),
-        ("tpClassification", "TP Points Classification"),
-        ("teamTimeClassification", "Team Classification"),
-        ("nextStageGrid", "Next Stage Starting Grid")
-    ]
-
-    for i, (key, title) in enumerate(keys):
-        with tabs[i]:
+    def render_table(key, title, tab_idx):
+        with tabs[tab_idx]:
             df = pd.DataFrame(data.get(key, []))
             if not df.empty:
                 df = df.fillna("")
@@ -168,18 +190,20 @@ else:
                     df['leaders'] = df['leaders'].apply(get_leader_emojis)
                 
                 df = df.rename(columns=COLUMN_MAP)
-                # Rimuoviamo colonne non necessarie alla vista ma usate per lo stile
                 styled_df = df.style.apply(style_cycling_rows, axis=1)
                 
                 st.header(title)
                 st.dataframe(
-                    styled_df, 
-                    use_container_width=True, 
-                    hide_index=True,
-                    column_config={
-                        "Jersey": st.column_config.ImageColumn("Jersey", width="small"),
-                        "jersey_raw": None # Nasconde la colonna di supporto
-                    }
+                    styled_df, use_container_width=True, hide_index=True,
+                    column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None}
                 )
             else:
-                st.write("No data available for this category.")
+                st.warning(f"No data available for {title}")
+    
+    render_table("stageResults", "Stage Classification", 0)
+    render_table("generalClassification", "General Classification (GC)", 1)
+    render_table("sprintClassification", "Points Classification", 2)
+    render_table("mountainClassification", "Mountains Classification (KOM)", 3)
+    render_table("tpClassification", "TP Points Classification", 4)
+    render_table("teamTimeClassification", "Team Classification", 5)
+    render_table("nextStageGrid", "Next Stage Starting Grid", 6)
