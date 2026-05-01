@@ -87,6 +87,10 @@ def fetch_data(url, code):
     except Exception as e:
         return {"error": str(e)}
 
+# --- CALLBACK PER DISABILITARE ---
+def trigger_loading():
+    st.session_state.is_loading = True
+
 # --- SESSION STATE INITIALIZATION ---
 if "prev_tour" not in st.session_state:
     st.session_state.prev_tour = None
@@ -100,65 +104,88 @@ if "total_stages" not in st.session_state:
     st.session_state.total_stages = 3
 if "json_data" not in st.session_state:
     st.session_state.json_data = {}
+if "is_loading" not in st.session_state:
+    st.session_state.is_loading = False
 
 # --- INTERFACE ---
 st.title("🚴 World Tour Cycling Dashboard")
 st.sidebar.header("Settings")
 
 # 1. Selezione Tour
-selected_tour_name = st.sidebar.selectbox("Select Tour", list(TOURS.keys()))
-year_code = st.sidebar.text_input("Year (e.g., 26)", "26")
+selected_tour_name = st.sidebar.selectbox(
+    "Select Tour", 
+    list(TOURS.keys()), 
+    disabled=st.session_state.is_loading,
+    on_change=trigger_loading
+)
+year_code = st.sidebar.text_input("Year (e.g., 26)", "26", disabled=st.session_state.is_loading)
 
 tour_id = TOURS[selected_tour_name]["id"]
 url_attuale = TOURS[selected_tour_name]["url"]
 
-# --- LOGICA DI AGGIORNAMENTO DATI (FETCH) ---
-# Se l'utente cambia il Tour (o al primo caricamento assoluto)
+# --- LOGICA DI AGGIORNAMENTO DATI ---
+
+# Caso A: Cambio Tour o Primo avvio
 if st.session_state.prev_tour != selected_tour_name:
     st.session_state.prev_tour = selected_tour_name
-    st.session_state.current_group = "A" # Resetta al Gruppo A
-    st.session_state.current_stage = "1" # Resetta alla Tappa 1
-    
-    codice_iniziale = f"{year_code}.{tour_id}.A.1"
-    
-    with st.spinner(f'Fetching initial data for {selected_tour_name}...'):
-        data = fetch_data(url_attuale, codice_iniziale)
-        st.session_state.json_data = data
-        
-        # Aggiorniamo i parametri totali dal JSON se esistono
-        if "error" not in data:
-            st.session_state.total_groups = data.get("totalGroups", 6)
-            st.session_state.total_stages = data.get("totalStages", 10)
+    st.session_state.current_group = "A"
+    st.session_state.current_stage = "1"
+    st.session_state.is_loading = True # Attiviamo il caricamento
 
 # --- CREAZIONE MENU A TENDINA DINAMICI ---
-# Generiamo la lista di lettere (A, B, C...) in base a totalGroups
 group_options = list(string.ascii_uppercase)[:st.session_state.total_groups]
-# Generiamo la lista numerica (1, 2, 3...) in base a totalStages
 stage_options = [str(i) for i in range(1, st.session_state.total_stages + 1)]
 
-# Assicuriamoci che i valori correnti in session_state esistano nelle nuove opzioni (evita errori se passi da un tour lungo a uno corto)
-if st.session_state.current_group not in group_options:
-    st.session_state.current_group = group_options[0]
-if st.session_state.current_stage not in stage_options:
-    st.session_state.current_stage = stage_options[0]
+# Fallback di sicurezza per gli indici
+if st.session_state.current_group not in group_options: st.session_state.current_group = group_options[0]
+if st.session_state.current_stage not in stage_options: st.session_state.current_stage = stage_options[0]
 
 st.sidebar.subheader("Race Selection")
 
-# Disegniamo i widget. Se l'utente li tocca, il codice riparte dall'alto.
-selected_group = st.sidebar.selectbox("Select Group", group_options, index=group_options.index(st.session_state.current_group))
-selected_stage = st.sidebar.selectbox("Select Stage", stage_options, index=stage_options.index(st.session_state.current_stage))
+# Widget Group e Stage (disabilitati se is_loading è True)
+selected_group = st.sidebar.selectbox(
+    "Select Group", 
+    group_options, 
+    index=group_options.index(st.session_state.current_group),
+    disabled=st.session_state.is_loading,
+    on_change=trigger_loading,
+    key="sb_group"
+)
 
-# Se l'utente ha modificato Gruppo o Tappa dai menu a tendina
+selected_stage = st.sidebar.selectbox(
+    "Select Stage", 
+    stage_options, 
+    index=stage_options.index(st.session_state.current_stage),
+    disabled=st.session_state.is_loading,
+    on_change=trigger_loading,
+    key="sb_stage"
+)
+
+# Rilevamento cambiamento manuale (se non catturato dal callback)
 if selected_group != st.session_state.current_group or selected_stage != st.session_state.current_stage:
+    st.session_state.is_loading = True
+
+# --- ESECUZIONE FETCH SOLO SE IN STATO LOADING ---
+if st.session_state.is_loading:
+    # Aggiorniamo i valori interni prima del fetch
     st.session_state.current_group = selected_group
     st.session_state.current_stage = selected_stage
     
-    nuovo_codice = f"{year_code}.{tour_id}.{selected_group}.{selected_stage}"
+    nuovo_codice = f"{year_code}.{tour_id}.{st.session_state.current_group}.{st.session_state.current_stage}"
     
-    with st.spinner(f'Fetching data for Group {selected_group}, Stage {selected_stage}...'):
+    with st.spinner(f'Fetching data for {nuovo_codice}...'):
         data = fetch_data(url_attuale, nuovo_codice)
         st.session_state.json_data = data
+        
+        if "error" not in data:
+            st.session_state.total_groups = data.get("totalGroups", 6)
+            st.session_state.total_stages = data.get("totalStages", 10)
+    
+    # Fine caricamento: resettiamo il flag e forziamo il rerun per riabilitare i widget
+    st.session_state.is_loading = False
+    st.rerun()
 
+# --- VISUALIZZAZIONE CODICE ---
 codice_finale = f"{year_code}.{tour_id}.{st.session_state.current_group}.{st.session_state.current_stage}"
 st.sidebar.info(f"**Race Code:** `{codice_finale}`")
 
