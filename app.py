@@ -23,6 +23,10 @@ TOURS = {
         "url": "https://script.google.com/macros/s/AKfycbwxNaL9swEDBUU3VqOQ4vDgj4BDCVd1-n0QVs4nUCKSzZTtxD54r6pVliV_uqNobzObaA/exec",
         "id": "2"
     },
+    "Paris-Nice (1)": {
+        "url": "https://script.google.com/macros/s/AKfycbyxixETwMCar087CvsXG6uTiYIUbm9TX9kFKCWzIHOCUURemBR2oVVCB15JU32dFwYY/exec",
+        "id": "1"
+    },
 }
 
 # --- 2. GITHUB IMAGES CONFIGURATION ---
