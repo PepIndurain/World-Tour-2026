@@ -5,71 +5,65 @@ import string
 
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub") 
 
-# --- 0. CUSTOM CSS PER TESTO PIÙ NERO E DEFINITO ---
+# --- CSS AGGRESSIVO PER LEGGIBILITÀ E CONTRASTO ---
 st.markdown("""
     <style>
-    /* Testo generale e etichette dei widget */
-    html, body, [data-testid="stWidgetLabel"] p, .st-ae {
+    /* 1. Importazione font ad alta leggibilità */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+    /* 2. Applicazione font e colore nero assoluto ovunque */
+    html, body, [class*="st-"], div, p, span, label {
+        font-family: 'Inter', sans-serif !important;
         color: #000000 !important;
-        font-weight: 500 !important;
+        font-size: 1.02rem;
+    }
+
+    /* 3. Titoli giganti e neri */
+    h1 { font-size: 3rem !important; font-weight: 800 !important; color: #000000 !important; }
+    h2 { font-size: 2rem !important; font-weight: 700 !important; color: #000000 !important; }
+    h3 { font-size: 1.5rem !important; font-weight: 700 !important; color: #000000 !important; }
+
+    /* 4. Widget della Sidebar (Label e Testo) */
+    [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        color: #000000 !important;
     }
     
-    /* Titoli */
-    h1, h2, h3 {
-        color: #000000 !important;
-        font-weight: 800 !important;
-    }
-
-    /* Testo all'interno dei widget (selectbox, input) */
-    .stSelectbox div[data-baseweb="select"] > div {
-        color: #000000 !important;
+    /* 5. Selectbox e Input (testo interno più nero e visibile) */
+    div[data-baseweb="select"] > div {
         font-weight: 600 !important;
+        color: #000000 !important;
+        border-color: #000000 !important;
+    }
+    
+    /* 6. Tabelle (Header e Celle) */
+    [data-testid="stDataFrame"] {
+        border: 1px solid #000000;
+    }
+    
+    /* 7. Tabs (Rendi i titoli dei tab neri e spessi) */
+    button[data-baseweb="tab"] p {
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        color: #000000 !important;
     }
 
-    /* Testo della Sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #f8f9fb;
-    }
-    [data-testid="stSidebar"] .st-expanderHeader, [data-testid="stSidebar"] label p {
+    /* 8. Alert e Spinner */
+    .stAlert p, .stSpinner div {
         color: #000000 !important;
         font-weight: 700 !important;
-    }
-
-    /* Celle delle tabelle/DataFrame */
-    [data-testid="stTable"] td, [data-testid="stDataFrame"] td {
-        color: #000000 !important;
-    }
-    
-    /* Testo informativo (st.info, st.success) */
-    .stAlert p {
-        color: #000000 !important;
-        font-weight: 600 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 1. TOUR CONFIGURATION ---
+# --- CONFIGURAZIONE TOUR ---
 TOURS = {
-    "Itzulia Basque Country (5)": {
-        "url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
-        "id": "5"
-    },
-    "Volta Ciclista a Catalunya (4)": {
-        "url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
-        "id": "4"
-    },
-    "Ronde van Vlaanderen (3)": {
-        "url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec",
-        "id": "3"
-    },   
-    "Tirreno - Adriatico (2)": {
-        "url": "https://script.google.com/macros/s/AKfycbwxNaL9swEDBUU3VqOQ4vDgj4BDCVd1-n0QVs4nUCKSzZTtxD54r6pVliV_uqNobzObaA/exec",
-        "id": "2"
-    },
-    "Paris-Nice (1)": {
-        "url": "https://script.google.com/macros/s/AKfycbyxixETwMCar087CvsXG6uTiYIUbm9TX9kFKCWzIHOCUURemBR2oVVCB15JU32dFwYY/exec",
-        "id": "1"
-    },
+    "Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbQ...", "id": "5"},
+    "Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfyc...", "id": "4"},
+    "Vlaanderen (3)": {"url": "https://script.google.com/macros/s/AKfy...", "id": "3"},
+    "Tirreno (2)": {"url": "https://script.google.com/macros/s/AKfy...", "id": "2"},
+    "Paris-Nice (1)": {"url": "https://script.google.com/macros/s/AKfy...", "id": "1"}
 }
 
 # --- GITHUB IMAGES & MAPPING ---
@@ -86,7 +80,7 @@ COLUMN_MAP = {
     "tourTimes": "Total Time", "grid": "Start Pos", "teamName": "Team Name", "e2": "Energy"
 }
 
-# --- SUPPORT FUNCTIONS ---
+# --- FUNZIONI DI SUPPORTO ---
 def get_jersey_url(val):
     v = str(val).lower()
     if not v or v in ['none', 'nan', '']: return ""
@@ -127,7 +121,7 @@ def fetch_data(url, code):
 def trigger_loading():
     st.session_state.is_loading = True
 
-# --- SESSION STATE INITIALIZATION ---
+# --- SESSION STATE ---
 if "prev_tour" not in st.session_state: st.session_state.prev_tour = None
 if "current_group" not in st.session_state: st.session_state.current_group = "A"
 if "current_stage" not in st.session_state: st.session_state.current_stage = "1"
@@ -136,16 +130,11 @@ if "total_stages" not in st.session_state: st.session_state.total_stages = 3
 if "json_data" not in st.session_state: st.session_state.json_data = {}
 if "is_loading" not in st.session_state: st.session_state.is_loading = False
 
-# --- INTERFACE ---
-st.title("🚴 World Tour Cycling Dashboard")
+# --- SIDEBAR ---
 st.sidebar.header("Settings")
-
-# Selezione Tour
 selected_tour_name = st.sidebar.selectbox(
-    "Select Tour", 
-    list(TOURS.keys()), 
-    disabled=st.session_state.is_loading,
-    on_change=trigger_loading
+    "Select Tour", list(TOURS.keys()), 
+    disabled=st.session_state.is_loading, on_change=trigger_loading
 )
 year_code = st.sidebar.text_input("Year (e.g., 26)", "26", disabled=st.session_state.is_loading)
 
@@ -154,48 +143,27 @@ url_attuale = TOURS[selected_tour_name]["url"]
 
 if st.session_state.prev_tour != selected_tour_name:
     st.session_state.prev_tour = selected_tour_name
-    st.session_state.current_group = "A"
-    st.session_state.current_stage = "1"
     st.session_state.is_loading = True
 
 group_options = list(string.ascii_uppercase)[:st.session_state.total_groups]
 stage_options = [str(i) for i in range(1, st.session_state.total_stages + 1)]
 
-if st.session_state.current_group not in group_options: st.session_state.current_group = group_options[0]
-if st.session_state.current_stage not in stage_options: st.session_state.current_stage = stage_options[0]
-
-st.sidebar.subheader("Race Selection")
-
 selected_group = st.sidebar.selectbox(
-    "Select Group", 
-    group_options, 
-    index=group_options.index(st.session_state.current_group),
-    disabled=st.session_state.is_loading,
-    on_change=trigger_loading,
-    key="group_box"
+    "Select Group", group_options, index=group_options.index(st.session_state.current_group) if st.session_state.current_group in group_options else 0,
+    disabled=st.session_state.is_loading, on_change=trigger_loading
 )
-
 selected_stage = st.sidebar.selectbox(
-    "Select Stage", 
-    stage_options, 
-    index=stage_options.index(st.session_state.current_stage),
-    disabled=st.session_state.is_loading,
-    on_change=trigger_loading,
-    key="stage_box"
+    "Select Stage", stage_options, index=stage_options.index(st.session_state.current_stage) if st.session_state.current_stage in stage_options else 0,
+    disabled=st.session_state.is_loading, on_change=trigger_loading
 )
 
-if selected_group != st.session_state.current_group or selected_stage != st.session_state.current_stage:
-    st.session_state.is_loading = True
-
-# --- LOGICA DI FETCHING ---
-if st.session_state.is_loading:
+# --- LOGICA FETCH ---
+if st.session_state.is_loading or (selected_group != st.session_state.current_group or selected_stage != st.session_state.current_stage):
     st.session_state.current_group = selected_group
     st.session_state.current_stage = selected_stage
     
     codice_call = f"{year_code}.{tour_id}.{selected_group}.{selected_stage}"
-    
-    # Messaggio descrittivo durante il caricamento
-    msg = f"Fetching: {selected_tour_name} - Group {selected_group}, Stage {selected_stage}..."
+    msg = f"FETCHING: {selected_tour_name} | Group {selected_group} | Stage {selected_stage}"
     
     with st.spinner(msg):
         data = fetch_data(url_attuale, codice_call)
@@ -207,22 +175,18 @@ if st.session_state.is_loading:
     st.session_state.is_loading = False
     st.rerun()
 
-# --- RENDER DEI DATI ---
+# --- MAIN CONTENT ---
+st.title("🚴 World Tour Cycling Hub")
 data = st.session_state.json_data
 
 if "error" in data:
-    st.error(f"Data not available: {data['error']}")
-elif not data:
-    st.warning("No data loaded. Please try again.")
-else:
-    st.success(f"📍 {selected_tour_name} | Group {st.session_state.current_group} | Stage {st.session_state.current_stage}")
+    st.error(f"Error: {data['error']}")
+elif data:
+    st.info(f"📍 MOSTRANDO: {selected_tour_name} - Gruppo {st.session_state.current_group} - Tappa {st.session_state.current_stage}")
     
-    tabs = st.tabs([
-        "🏁 Stage Results", "🟡 General (GC)", "🟢 Points", 
-        "🔴 Mountain", "🔵 TP Points", "👥 Teams", "🚀 Next Grid"
-    ])
+    tabs = st.tabs(["🏁 Tappa", "🟡 GC", "🟢 Punti", "🔴 KOM", "🔵 TP", "👥 Team", "🚀 Griglia"])
 
-    def render_table(key, title, tab_idx):
+    def render_table(key, tab_idx):
         with tabs[tab_idx]:
             df = pd.DataFrame(data.get(key, []))
             if not df.empty:
@@ -234,20 +198,11 @@ else:
                     df['leaders'] = df['leaders'].apply(get_leader_emojis)
                 
                 df = df.rename(columns=COLUMN_MAP)
-                styled_df = df.style.apply(style_cycling_rows, axis=1)
-                
-                st.header(title)
-                st.dataframe(
-                    styled_df, use_container_width=True, hide_index=True,
-                    column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None}
-                )
+                st.dataframe(df.style.apply(style_cycling_rows, axis=1), 
+                             use_container_width=True, hide_index=True,
+                             column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None})
             else:
-                st.warning(f"No data available for {title}")
-    
-    render_table("stageResults", "Stage Classification", 0)
-    render_table("generalClassification", "General Classification (GC)", 1)
-    render_table("sprintClassification", "Points Classification", 2)
-    render_table("mountainClassification", "Mountains Classification (KOM)", 3)
-    render_table("tpClassification", "TP Points Classification", 4)
-    render_table("teamTimeClassification", "Team Classification", 5)
-    render_table("nextStageGrid", "Next Stage Starting Grid", 6)
+                st.warning("Dati non disponibili")
+
+    keys = ["stageResults", "generalClassification", "sprintClassification", "mountainClassification", "tpClassification", "teamTimeClassification", "nextStageGrid"]
+    for i, k in enumerate(keys): render_table(k, i)
