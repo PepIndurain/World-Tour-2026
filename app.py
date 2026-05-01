@@ -6,52 +6,45 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub") 
 
-# --- 1. CSS FOR READABILITY: LARGE TABLE FONT & BALANCED WEIGHTS ---
+# --- 1. FIXED CSS: LARGE TABLE FONT & PROTECTED ICONS ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
-    /* Global text: Pure black and Inter font */
-    html, body, [class*="st-"], div, p, span, label {
+    /* Apply font only to text elements, avoiding icons */
+    html, body, p, div:not([data-testid="stIcon"]), label, h1, h2, h3 {
         font-family: 'Inter', sans-serif !important;
         color: #000000 !important;
     }
 
-    /* Titles: Balanced Bold (700 instead of 900) */
+    /* Keep icons as they are to avoid "keyboard_double_arrow" text */
+    [data-testid="stIcon"] {
+        font-family: inherit !important;
+    }
+
+    /* Titles: Bold and Black */
     h1, h2, h3 { 
-        color: #000000 !important; 
         font-weight: 700 !important; 
     }
 
-    /* Sidebar Labels: Bold and clear */
-    [data-testid="stWidgetLabel"] p {
-        font-weight: 600 !important;
-        font-size: 1rem !important;
+    /* SPECIFIC FOR TABLES: Make Rider names and data pop */
+    [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
+        font-size: 1.15rem !important; /* Larger font for rows */
         color: #000000 !important;
-    }
-
-    /* SPECIFIC FOR TABLES: Make text bigger and very black */
-    /* This targets the cells inside st.dataframe */
-    [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th, [data-testid="stTable"] td {
-        font-size: 1.15rem !important; /* Increased size for Rider Names */
-        color: #000000 !important;
-    }
-    
-    /* Make the content inside dataframes stand out */
-    [data-testid="stDataFrame"] * {
-        font-size: 1.1rem !important;
         font-weight: 500 !important;
     }
 
-    /* Tab headers: Clean and bold */
+    /* Sidebar Labels */
+    [data-testid="stWidgetLabel"] p {
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+    }
+
+    /* Tab headers */
     button[data-baseweb="tab"] p {
         font-weight: 700 !important;
         font-size: 1rem !important;
-        color: #000000 !important;
     }
-
-    /* Alert and success messages */
-    .stAlert p { font-weight: 600 !important; color: #000000 !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -62,7 +55,7 @@ TOURS = {
         "id": "5"
     },
     "Volta Ciclista a Catalunya (4)": {
-        "url": "https://script.google.com/macros/s/AKfycbxXHl_6a4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
+        "url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
         "id": "4"
     },
     "Ronde van Vlaanderen (3)": {
@@ -100,7 +93,7 @@ def fetch_data(url, code):
         if "application/json" in response.headers.get("Content-Type", ""):
             return response.json()
         else:
-            return {"error": "Server did not return JSON. Please check Google Script."}
+            return {"error": "Server error (Non-JSON)"}
     except Exception as e:
         return {"error": str(e)}
 
@@ -216,7 +209,6 @@ elif data:
                 
                 df = df.rename(columns=COLUMN_MAP)
                 
-                # Render the dataframe
                 st.dataframe(
                     df.style.apply(style_cycling_rows, axis=1), 
                     use_container_width=True, 
