@@ -6,21 +6,7 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CONFIGURATION ---
-# INCOLLA QUI L'URL CHE HAI OTTENUTO DAL FILE MASTER
-MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec" 
-
-TOURS = {
-    "Itzulia Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec", "id": "5"},
-    "Volta Ciclista a Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfycbxXHl_6a4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec", "id": "4"},
-    "Ronde van Vlaanderen (3)": {"url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec", "id": "3"},
-    "Tirreno - Adriatico (2)": {"url": "https://script.google.com/macros/s/AKfycbwxNaL9swEDBUU3VqOQ4vDgj4BDCVd1-n0QVs4nUCKSzZTtxD54r6pVliV_uqNobzObaA/exec", "id": "2"},
-    "Paris-Nice (1)": {"url": "https://script.google.com/macros/s/AKfycbyxixETwMCar087CvsXG6uTiYIUbm9TX9kFKCWzIHOCUURemBR2oVVCB15JU32dFwYY/exec", "id": "1"}
-}
-
-BASE_IMAGE_URL = "https://raw.githubusercontent.com/PepIndurain/World-Tour-2026/main/"
-
-# --- 2. CSS: ULTRA BLACK & LARGE FONT ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & FIXED HOF GRID) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -33,23 +19,69 @@ st.markdown("""
     }
     .main-header h1 { color: #FFFFFF !important; font-weight: 800 !important; font-size: 2.8rem !important; margin: 0 !important; text-transform: uppercase; }
 
-    /* Tables Style (Pure Black & Bold for PC) */
+    /* --- HALL OF FAME ALIGNMENT --- */
+    .hof-header-grid {
+        display: grid;
+        grid-template-columns: 100px repeat(4, 1fr); /* Match exactly with hof-row */
+        text-align: center;
+        margin-bottom: 15px;
+        background: #f8f9fa;
+        padding: 15px 10px;
+        border-radius: 10px;
+        align-items: end;
+    }
+    .hof-header-item {
+        font-weight: 800;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+    }
+
+    .hof-row {
+        display: grid;
+        grid-template-columns: 100px repeat(4, 1fr); /* 100px for Group, then 4 equal columns */
+        gap: 15px;
+        background: #ffffff;
+        border: 2px solid #000000;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        padding: 15px 10px;
+        align-items: center;
+        box-shadow: 4px 4px 0px #eee;
+    }
+    .group-label {
+        font-size: 2.5rem; font-weight: 800; color: #C1272D; text-align: center;
+        border-right: 2px solid #eee;
+    }
+    .jersey-box { 
+        text-align: left; 
+        padding-left: 10px; 
+    }
+    .rider-name { font-size: 1.2rem; font-weight: 700; color: #000000; display: block; line-height: 1.2; margin-bottom: 2px; }
+    .team-name { font-size: 0.85rem; font-weight: 600; color: #555; text-transform: uppercase; }
+    
+    /* Tables Style */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
-    
-    .hof-row {
-        display: grid; grid-template-columns: 80px repeat(4, 1fr); gap: 10px;
-        background: #ffffff; border: 2px solid #000000; border-radius: 10px;
-        margin-bottom: 10px; padding: 15px 10px; align-items: center; box-shadow: 4px 4px 0px #eee;
-    }
-    .group-label { font-size: 2.2rem; font-weight: 800; color: #C1272D; text-align: center; border-right: 2px solid #eee; }
-    .rider-name { font-size: 1.2rem; font-weight: 700; color: #000000; display: block; }
     </style>
     """, unsafe_allow_html=True)
 
+# --- 2. CONFIGURATION ---
+MASTER_URL = "INSERISCI_QUI_IL_TUO_URL_MASTER" # Da riempire con il tuo URL Master
+
+TOURS = {
+    "Itzulia Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec", "id": "5"},
+    "Volta Ciclista a Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec", "id": "4"},
+    "Ronde van Vlaanderen (3)": {"url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec", "id": "3"},
+    "Tirreno - Adriatico (2)": {"url": "https://script.google.com/macros/s/AKfycbwxNaL9swEDBUU3VqOQ4vDgj4BDCVd1-n0QVs4nUCKSzZTtxD54r6pVliV_uqNobzObaA/exec", "id": "2"},
+    "Paris-Nice (1)": {"url": "https://script.google.com/macros/s/AKfycbyxixETwMCar087CvsXG6uTiYIUbm9TX9kFKCWzIHOCUURemBR2oVVCB15JU32dFwYY/exec", "id": "1"}
+}
+
+BASE_IMAGE_URL = "https://raw.githubusercontent.com/PepIndurain/World-Tour-2026/main/"
+
 # --- 3. HELPER FUNCTIONS ---
-def get_jersey_icon(color): return f"{BASE_IMAGE_URL}{color}-jersey.png"
+def get_jersey_icon(color):
+    return f"{BASE_IMAGE_URL}{color}-jersey.png"
 
 def style_rows(row):
     text_style = 'color: #000000; font-weight: 700;'
@@ -108,6 +140,10 @@ elif page == "🏆 Hall of Fame":
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1><p>Final Tour Winners by Group</p></div>', unsafe_allow_html=True)
     sel_tour_hof = st.selectbox("Choose Tour to display FINAL Champions:", list(TOURS.keys()))
     
+    if st.button("🔄 Refresh Winners"):
+        st.cache_data.clear()
+        st.rerun()
+
     @st.cache_data(ttl=600)
     def get_final_winners(tour_name):
         t_info = TOURS[tour_name]
@@ -118,18 +154,36 @@ elif page == "🏆 Hall of Fame":
             results = []
             for lit in list(string.ascii_uppercase)[:num_groups]:
                 res = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.{lit}.{last_stage}").json()
-                get_t = lambda k: {"name": res[k][0]["name"], "team": res[k][0].get("teamName", res[k][0].get("team", ""))} if res.get(k) else {"name": "N/A", "team": "-"}
+                get_t = lambda k: {"name": res[k][0]["name"], "team": res[k][0].get("teamName", res[k][0].get("team", ""))} if res.get(k) else {"name": "No Winner", "team": "-"}
                 results.append({"group": lit, "yellow": get_t("generalClassification"), "green": get_t("sprintClassification"), "polkadot": get_t("mountainClassification"), "white": get_t("teamTimeClassification")})
             return results
         except: return []
 
-    final_winners = get_final_winners(sel_tour_hof)
+    with st.spinner("Analyzing Winners..."):
+        final_winners = get_final_winners(sel_tour_hof)
+
     if final_winners:
-        st.markdown(f'<div class="hof-header-grid"><div>Group</div><div><img src="{get_jersey_icon("yellow")}" width="30"><br>GC</div><div><img src="{get_jersey_icon("green")}" width="30"><br>Pts</div><div><img src="{get_jersey_icon("polkadot")}" width="30"><br>KOM</div><div><img src="{get_jersey_icon("white")}" width="30"><br>Team</div></div>', unsafe_allow_html=True)
+        # --- FIXED HEADER WITH PERFECT ALIGNMENT ---
+        st.markdown(f"""
+            <div class="hof-header-grid">
+                <div class="hof-header-item">Group</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('yellow')}" width="40"><br>GC</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('green')}" width="40"><br>Points</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('polkadot')}" width="40"><br>KOM</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('white')}" width="40"><br>Team</div>
+            </div>
+        """, unsafe_allow_html=True)
+
         for w in final_winners:
-            row = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
-            for col in ["yellow", "green", "polkadot", "white"]: row += f'<div class="jersey-box"><span class="rider-name">{w[col]["name"]}</span><span class="team-name">{w[col]["team"]}</span></div>'
-            st.markdown(row + "</div>", unsafe_allow_html=True)
+            row_html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
+            for col in ["yellow", "green", "polkadot", "white"]:
+                row_html += f"""
+                <div class="jersey-box">
+                    <span class="rider-name">{w[col]['name']}</span>
+                    <span class="team-name">{w[col]['team']}</span>
+                </div>"""
+            row_html += "</div>"
+            st.markdown(row_html, unsafe_allow_html=True)
 
 else:
  # --- 📊 MASTER STANDINGS ---
