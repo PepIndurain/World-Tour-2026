@@ -83,6 +83,18 @@ BASE_IMAGE_URL = "https://raw.githubusercontent.com/PepIndurain/World-Tour-2026/
 def get_jersey_icon(color):
     return f"{BASE_IMAGE_URL}{color}-jersey.png"
 
+def get_leader_emojis(val):
+    if isinstance(val, list):
+        emojis = []
+        for color in val:
+            c = str(color).lower()
+            if 'yellow' in c: emojis.append("🟡")
+            elif 'green' in c: emojis.append("🟢")
+            elif 'polkadot' in c: emojis.append("🔴")
+            elif 'white' in c: emojis.append("⚪")
+        return " ".join(emojis)
+    return ""
+
 def style_rows(row):
     text_style = 'color: #000000; font-weight: 700;'
     # Cerchiamo il colore direttamente nella stringa (che sia un nome semplice o un URL)
