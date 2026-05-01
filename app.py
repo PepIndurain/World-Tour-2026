@@ -48,9 +48,9 @@ st.markdown("""
         background: #f8f9fa; padding: 10px; border-radius: 10px;
     }
 
-    /* Tables Style */
+    /* Tables Style (Pure Black and Bold) */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
-        font-size: 1.15rem !important; color: #000000 !important; font-weight: 600 !important;
+        font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -58,7 +58,7 @@ st.markdown("""
 # --- 2. CONFIGURATION ---
 TOURS = {
     "Itzulia Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec", "id": "5"},
-    "Volta Ciclista a Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec", "id": "4"},
+    "Volta Ciclista a Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfycbxXHl_6a4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec", "id": "4"},
     "Ronde van Vlaanderen (3)": {"url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec", "id": "3"},
     "Tirreno - Adriatico (2)": {"url": "https://script.google.com/macros/s/AKfycbwxNaL9swEDBUU3VqOQ4vDgj4BDCVd1-n0QVs4nUCKSzZTtxD54r6pVliV_uqNobzObaA/exec", "id": "2"},
     "Paris-Nice (1)": {"url": "https://script.google.com/macros/s/AKfycbyxixETwMCar087CvsXG6uTiYIUbm9TX9kFKCWzIHOCUURemBR2oVVCB15JU32dFwYY/exec", "id": "1"}
@@ -153,17 +153,12 @@ else:
                         lst = res.get(key, [])
                         return {"name": lst[0]["name"], "team": lst[0].get("teamName", lst[0].get("team", ""))} if lst else {"name": "N/A", "team": "-"}
 
-                    def get_top_team(key):
-                        lst = res.get(key, [])
-                        # Prende il nome del miglior team (Cella M81 mappata nel JSON)
-                        return {"name": lst[0].get("teamName", lst[0].get("team", "N/A")), "team": "BEST TEAM"} if lst else {"name": "N/A", "team": "-"}
-
                     all_final_results.append({
                         "group": lit, "stage": last_stage,
                         "yellow": get_top("generalClassification"), 
                         "green": get_top("sprintClassification"),
                         "polkadot": get_top("mountainClassification"), 
-                        "white": get_top_team("teamTimeClassification") # CORREZIONE: Maglia Bianca = Miglior Team
+                        "white": get_top("tpClassification") # CORREZIONE: Maglia Bianca = Best Team (M81)
                     })
                 except: continue
             return all_final_results
@@ -195,4 +190,4 @@ else:
             row_html += "</div>"
             st.markdown(row_html, unsafe_allow_html=True)
     else:
-        st.error("Data not available for the final stage of this tour.")
+        st.error("Data not available for the final stage.")
