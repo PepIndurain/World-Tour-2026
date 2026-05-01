@@ -31,18 +31,19 @@ st.markdown("""
     .hof-card {
         background: #ffffff; border: 3px solid #000000; border-radius: 15px; padding: 20px;
         text-align: center; box-shadow: 8px 8px 0px #C1272D; margin-bottom: 25px;
-        min-height: 350px; display: flex; flex-direction: column; justify-content: center;
+        min-height: 380px; display: flex; flex-direction: column; justify-content: space-between;
     }
-    .hof-tour-name { font-size: 1.1rem; font-weight: 800; color: #C1272D; text-transform: uppercase; margin-bottom: 10px; }
-    .hof-winner-name { font-size: 1.6rem; font-weight: 800; color: #000000; margin: 15px 0; border-top: 1px solid #eee; padding-top: 10px; }
-    .hof-team { font-size: 1rem; font-weight: 600; color: #555; }
+    .hof-tour-name { font-size: 1.1rem; font-weight: 800; color: #C1272D; text-transform: uppercase; margin-bottom: 10px; min-height: 50px; }
+    .hof-winner-name { font-size: 1.5rem; font-weight: 800; color: #000000; margin: 10px 0; border-top: 1px solid #eee; padding-top: 10px; }
+    .hof-team { font-size: 0.95rem; font-weight: 600; color: #444; }
+    .hof-empty { color: #999; font-style: italic; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. CONFIGURATION ---
+# --- 2. CONFIGURATION (CORRECTED CATALUNYA URL) ---
 TOURS = {
     "Itzulia Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec", "id": "5"},
-    "Volta Ciclista a Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfycbxXHl_6a4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec", "id": "4"},
+    "Volta Ciclista a Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec", "id": "4"},
     "Ronde van Vlaanderen (3)": {"url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec", "id": "3"},
     "Tirreno - Adriatico (2)": {"url": "https://script.google.com/macros/s/AKfycbwxNaL9swEDBUU3VqOQ4vDgj4BDCVd1-n0QVs4nUCKSzZTtxD54r6pVliV_uqNobzObaA/exec", "id": "2"},
     "Paris-Nice (1)": {"url": "https://script.google.com/macros/s/AKfycbyxixETwMCar087CvsXG6uTiYIUbm9TX9kFKCWzIHOCUURemBR2oVVCB15JU32dFwYY/exec", "id": "1"}
@@ -53,24 +54,24 @@ REPO_NAME = "World-Tour-2026"
 BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/main/"
 
 # --- 3. FUNCTIONS ---
-@st.cache_data(ttl=600) # Cache per 10 minuti per non rallentare l'app
+@st.cache_data(ttl=300)
 def fetch_winner(tour_name, tour_url, tour_id, year="26"):
     try:
-        # Per trovare il vincitore finale, proviamo a recuperare l'ultima tappa possibile
-        # Nota: Qui scarichiamo i dati della tappa corrente per ottenere il leader GC attuale
-        response = requests.get(f"{tour_url}?code={year}.{tour_id}.A.1", timeout=10)
+        # Recupera la classifica leader dalla tappa A.1
+        response = requests.get(f"{tour_url}?code={year}.{tour_id}.A.1", timeout=12)
         data = response.json()
         if "generalClassification" in data and len(data["generalClassification"]) > 0:
-            winner = data["generalClassification"][0] # Il primo in classifica GC
+            winner = data["generalClassification"][0]
             return {
                 "tour": tour_name,
                 "winner": winner.get("name", "N/A"),
                 "team": winner.get("teamName", winner.get("team", "N/A")),
-                "time": winner.get("tourTimes", "")
+                "time": winner.get("tourTimes", ""),
+                "found": True
             }
     except:
-        return None
-    return None
+        pass
+    return {"tour": tour_name, "winner": "Data Not Available", "team": "Check Connection", "time": "-", "found": False}
 
 def get_jersey_url(val):
     v = str(val).lower()
@@ -95,7 +96,6 @@ st.sidebar.title("🏁 World Tour Menu")
 page = st.sidebar.radio("Navigate to:", ["Live Dashboard", "🏆 Hall of Fame"])
 
 if page == "Live Dashboard":
-    # --- DASHBOARD LOGIC (Il tuo codice precedente) ---
     st.sidebar.divider()
     st.sidebar.header("Race Settings")
     selected_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()))
@@ -106,7 +106,6 @@ if page == "Live Dashboard":
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
         st.session_state.is_loading = True
 
-    # Dinamici
     total_groups = st.session_state.get("total_groups", 6)
     total_stages = st.session_state.get("total_stages", 10)
     group_opts = list(string.ascii_uppercase)[:total_groups]
@@ -143,33 +142,34 @@ if page == "Live Dashboard":
                     st.dataframe(df.style.apply(style_cycling_rows, axis=1), use_container_width=True, hide_index=True, column_config={"Jersey": st.column_config.ImageColumn()})
 
 else:
-    # --- HALL OF FAME (AUTOMATICA) ---
+    # --- HALL OF FAME ---
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1><p>The 5 Great Classics Leaders</p></div>', unsafe_allow_html=True)
     
+    # Scarichiamo i dati (anche quelli mancanti verranno gestiti)
+    winners = []
     with st.spinner("Analyzing Tour History..."):
-        winners = []
         for name, info in TOURS.items():
-            res = fetch_winner(name, info["url"], info["id"])
-            if res: winners.append(res)
+            winners.append(fetch_winner(name, info["url"], info["id"]))
     
-    if winners:
-        cols = st.columns(len(winners))
-        for idx, w in enumerate(winners):
-            with cols[idx]:
-                st.markdown(f"""
-                    <div class="hof-card">
-                        <div class="hof-tour-name">{w['tour']}</div>
-                        <img src="{BASE_IMAGE_URL}yellow-jersey.png" width="80" style="margin: auto;">
-                        <div class="hof-winner-name">{w['winner']}</div>
-                        <div class="hof-team">{w['team']}</div>
-                        <div style="margin-top:15px; font-size:0.9rem; color:#C1272D; font-weight:800;">
-                            ⏱️ {w['time']}
-                        </div>
+    # Mostriamo 5 colonne fisse
+    cols = st.columns(5)
+    for idx, w in enumerate(winners):
+        with cols[idx]:
+            content_class = "" if w["found"] else "hof-empty"
+            img_html = f'<img src="{BASE_IMAGE_URL}yellow-jersey.png" width="70" style="margin: auto;">' if w["found"] else '<div style="font-size:3rem;">❓</div>'
+            
+            st.markdown(f"""
+                <div class="hof-card">
+                    <div class="hof-tour-name">{w['tour']}</div>
+                    {img_html}
+                    <div class="hof-winner-name {content_class}">{w['winner']}</div>
+                    <div class="hof-team">{w['team']}</div>
+                    <div style="margin-top:15px; font-size:0.9rem; color:#C1272D; font-weight:800;">
+                        ⏱️ {w['time']}
                     </div>
-                """, unsafe_allow_html=True)
-        
-        st.divider()
-        st.write("### 📜 Summary Roll of Honor")
-        st.table(pd.DataFrame(winners))
-    else:
-        st.warning("No winner data found. Make sure the races have started!")
+                </div>
+            """, unsafe_allow_html=True)
+    
+    st.divider()
+    st.write("### 📜 Summary Roll of Honor")
+    st.table(pd.DataFrame(winners)[["tour", "winner", "team", "time"]])
