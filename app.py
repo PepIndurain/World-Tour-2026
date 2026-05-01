@@ -3,56 +3,66 @@ import requests
 import pandas as pd
 import string
 
-# Configurazione Pagina
+# Page Configuration
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub") 
 
-# --- 1. CSS PER MASSIMO CONTRASTO E LEGGIBILITÀ ---
+# --- 1. CSS FOR READABILITY: LARGE TABLE FONT & BALANCED WEIGHTS ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
 
-    /* Testo globale nero puro e font Inter */
+    /* Global text: Pure black and Inter font */
     html, body, [class*="st-"], div, p, span, label {
         font-family: 'Inter', sans-serif !important;
         color: #000000 !important;
     }
 
-    /* Titoli neri e molto spessi */
-    h1, h2, h3 { color: #000000 !important; font-weight: 500 !important; }
+    /* Titles: Balanced Bold (700 instead of 900) */
+    h1, h2, h3 { 
+        color: #000000 !important; 
+        font-weight: 700 !important; 
+    }
 
-    /* Etichette dei widget nella sidebar */
+    /* Sidebar Labels: Bold and clear */
     [data-testid="stWidgetLabel"] p {
-        font-weight: 300 !important;
-        font-size: 1.1rem !important;
-        color: #000000 !important;
-    }
-
-    /* Testo dentro i menu a tendina */
-    div[data-baseweb="select"] > div {
-        color: #000000 !important;
-        font-weight: 300 !important;
-    }
-
-    /* Titoli dei Tab neri e grandi */
-    button[data-baseweb="tab"] p {
         font-weight: 600 !important;
-        font-size: 1.1rem !important;
+        font-size: 1rem !important;
         color: #000000 !important;
     }
 
-    /* Messaggi di Alert più visibili */
-    .stAlert p { font-weight: 500 !important; color: #000000 !important; }
+    /* SPECIFIC FOR TABLES: Make text bigger and very black */
+    /* This targets the cells inside st.dataframe */
+    [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th, [data-testid="stTable"] td {
+        font-size: 1.15rem !important; /* Increased size for Rider Names */
+        color: #000000 !important;
+    }
+    
+    /* Make the content inside dataframes stand out */
+    [data-testid="stDataFrame"] * {
+        font-size: 1.1rem !important;
+        font-weight: 500 !important;
+    }
+
+    /* Tab headers: Clean and bold */
+    button[data-baseweb="tab"] p {
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        color: #000000 !important;
+    }
+
+    /* Alert and success messages */
+    .stAlert p { font-weight: 600 !important; color: #000000 !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. TOUR CONFIGURATION (URL COMPLETI RIPRISTINATI) ---
+# --- 2. TOUR CONFIGURATION ---
 TOURS = {
     "Itzulia Basque Country (5)": {
         "url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
         "id": "5"
     },
     "Volta Ciclista a Catalunya (4)": {
-        "url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
+        "url": "https://script.google.com/macros/s/AKfycbxXHl_6a4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
         "id": "4"
     },
     "Ronde van Vlaanderen (3)": {
@@ -82,16 +92,15 @@ GITHUB_USER = "PepIndurain"
 REPO_NAME = "World-Tour-2026"
 BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/main/"
 
-# --- 3. FUNZIONI DI SUPPORTO ---
+# --- 3. SUPPORT FUNCTIONS ---
 def fetch_data(url, code):
     try:
-        response = requests.get(f"{url}?code={code}", timeout=10)
+        response = requests.get(f"{url}?code={code}", timeout=15)
         response.raise_for_status()
-        # Controllo se la risposta è effettivamente un JSON
         if "application/json" in response.headers.get("Content-Type", ""):
             return response.json()
         else:
-            return {"error": "Il server non ha risposto con un JSON. Probabile errore nello script Google."}
+            return {"error": "Server did not return JSON. Please check Google Script."}
     except Exception as e:
         return {"error": str(e)}
 
@@ -147,7 +156,6 @@ year_code = st.sidebar.text_input("Year", "26", disabled=st.session_state.is_loa
 tour_id = TOURS[selected_tour_name]["id"]
 url_attuale = TOURS[selected_tour_name]["url"]
 
-# Reset se cambio tour
 if st.session_state.prev_tour != selected_tour_name:
     st.session_state.prev_tour = selected_tour_name
     st.session_state.is_loading = True
@@ -166,37 +174,34 @@ selected_stage = st.sidebar.selectbox(
     disabled=st.session_state.is_loading, on_change=trigger_loading
 )
 
-# --- 6. LOGICA DI CARICAMENTO ---
+# --- 6. LOADING LOGIC ---
 if st.session_state.is_loading or (selected_group != st.session_state.current_group or selected_stage != st.session_state.current_stage):
     st.session_state.current_group = selected_group
     st.session_state.current_stage = selected_stage
     
     codice_call = f"{year_code}.{tour_id}.{selected_group}.{selected_stage}"
-    
-    # Messaggio di attesa con nomi reali
     msg_loading = f"Fetching: {selected_tour_name} | Group {selected_group} | Stage {selected_stage}..."
     
     with st.spinner(msg_loading):
         data = fetch_data(url_attuale, codice_call)
         st.session_state.json_data = data
-        if "error" not in data:
+        if data and "error" not in data:
             st.session_state.total_groups = data.get("totalGroups", 6)
             st.session_state.total_stages = data.get("totalStages", 10)
     
     st.session_state.is_loading = False
     st.rerun()
 
-# --- 7. RENDER DATI ---
+# --- 7. MAIN INTERFACE ---
 st.title("🚴 World Tour Cycling Hub")
 data = st.session_state.json_data
 
 if "error" in data:
-    st.error(f"⚠️ Errore nel recupero dati: {data['error']}")
-    st.info("Verifica che il codice gara esista nel database o che l'URL di Google sia corretto.")
+    st.error(f"⚠️ Error: {data['error']}")
 elif data:
-    st.success(f"📍 {selected_tour_name} - Gruppo {st.session_state.current_group} - Tappa {st.session_state.current_stage}")
+    st.success(f"📍 Displaying: {selected_tour_name} | Group {st.session_state.current_group} | Stage {st.session_state.current_stage}")
     
-    tabs = st.tabs(["🏁 Tappa", "🟡 GC", "🟢 Punti", "🔴 KOM", "🔵 TP", "👥 Team", "🚀 Griglia"])
+    tabs = st.tabs(["🏁 Stage Results", "🟡 GC", "🟢 Points", "🔴 KOM", "🔵 TP Points", "👥 Team GC", "🚀 Next Grid"])
 
     def render_table(key, tab_idx):
         with tabs[tab_idx]:
@@ -210,11 +215,16 @@ elif data:
                     df['leaders'] = df['leaders'].apply(get_leader_emojis)
                 
                 df = df.rename(columns=COLUMN_MAP)
-                st.dataframe(df.style.apply(style_cycling_rows, axis=1), 
-                             use_container_width=True, hide_index=True,
-                             column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None})
+                
+                # Render the dataframe
+                st.dataframe(
+                    df.style.apply(style_cycling_rows, axis=1), 
+                    use_container_width=True, 
+                    hide_index=True,
+                    column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None}
+                )
             else:
-                st.warning("Nessun dato disponibile per questa classifica.")
+                st.warning("No data available.")
 
     classifiche = ["stageResults", "generalClassification", "sprintClassification", "mountainClassification", "tpClassification", "teamTimeClassification", "nextStageGrid"]
     for i, chiave in enumerate(classifiche):
