@@ -7,7 +7,7 @@ st.set_page_config(layout="wide", page_title="Cycling Pro Hub")
 # --- 1. TOUR CONFIGURATION ---
 TOURS = {
     "Itzulia Basque Country": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec",
-    "Volta Ciclista (Example)": "YOUR_VOLTA_URL_HERE",
+    "Volta Ciclista (Example)": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec",
 }
 
 # --- 2. GITHUB IMAGES CONFIGURATION ---
