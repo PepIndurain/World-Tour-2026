@@ -18,7 +18,7 @@ st.markdown("""
     }
 
     /* Titoli neri e molto spessi */
-    h1, h2, h3 { color: #000000 !important; font-weight: 900 !important; }
+    h1, h2, h3 { color: #000000 !important; font-weight: 700 !important; }
 
     /* Etichette dei widget nella sidebar */
     [data-testid="stWidgetLabel"] p {
