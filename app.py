@@ -7,19 +7,38 @@ st.set_page_config(layout="wide", page_title="Cycling Hub")
 # --- CONFIGURAZIONE ---
 WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec"
 
-# Parametri per le tue immagini su GitHub
 GITHUB_USER = "PepIndurain"
 REPO_NAME = "World-Tour-2026"
 BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/main/"
 
 def get_jersey_url(val):
     v = str(val).lower()
-    # Usiamo i nomi esatti che vedo nel tuo screenshot
     if 'yellow' in v: return f"{BASE_IMAGE_URL}yellow-jersey.png"
     if 'green' in v: return f"{BASE_IMAGE_URL}green-jersey.png"
     if 'polkadot' in v: return f"{BASE_IMAGE_URL}polkadot-jersey.png"
     if 'white' in v: return f"{BASE_IMAGE_URL}white-jersey.png"
     return None
+
+# --- FUNZIONE PER I PALLINI LEADERS ---
+def get_leader_emojis(val):
+    if isinstance(val, list):
+        # Se lo script manda una lista di colori
+        emojis = []
+        for color in val:
+            c = str(color).lower()
+            if 'yellow' in c: emojis.append("🟡")
+            elif 'green' in c: emojis.append("🟢")
+            elif 'polkadot' in c: emojis.append("🔴")
+            elif 'white' in c: emojis.append("⚪")
+        return " ".join(emojis)
+    else:
+        # Se manda una stringa singola
+        c = str(val).lower()
+        if 'yellow' in c: return "🟡"
+        if 'green' in c: return "🟢"
+        if 'polkadot' in c: return "🔴"
+        if 'white' in c: return "⚪"
+    return ""
 
 def style_cycling_rows(row):
     j = str(row['jersey_raw']).lower() if 'jersey_raw' in row else ''
@@ -35,7 +54,7 @@ st.sidebar.header("Impostazioni")
 codice_gara = st.sidebar.text_input("Codice Gara", "26.5.A.2")
 
 if codice_gara:
-    with st.spinner('Caricamento dati e maglie personalizzate...'):
+    with st.spinner('Aggiornamento icone...'):
         try:
             response = requests.get(f"{WEB_APP_URL}?code={codice_gara}")
             data = response.json()
@@ -49,9 +68,14 @@ if codice_gara:
                     with tabs[tab_idx]:
                         df = pd.DataFrame(data.get(key, []))
                         if not df.empty:
+                            # 1. Gestione Maglie (Immagini)
                             if 'jersey' in df.columns:
                                 df['jersey_raw'] = df['jersey']
                                 df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
+                            
+                            # 2. Gestione Leaders (Pallini Emoji)
+                            if 'leaders' in df.columns:
+                                df['leaders'] = df['leaders'].apply(get_leader_emojis)
                             
                             styled_df = df.style.apply(style_cycling_rows, axis=1)
                             
