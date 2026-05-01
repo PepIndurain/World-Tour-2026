@@ -6,12 +6,12 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CLEANER CSS: TARGETED BOLD FOR INPUTS ---
+# --- 1. CSS: READABILITY & INPUT BOLDING ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-    /* Global text: Pure black, Inter font, weight 400 */
+    /* Global text: Pure black, Inter font */
     html, body, p, div:not([data-testid="stIcon"]), label, h1, h2, h3 {
         font-family: 'Inter', sans-serif !important;
         color: #000000 !important;
@@ -29,14 +29,12 @@ st.markdown("""
         letter-spacing: -0.02em;
     }
 
-    /* --- SPECIFIC FOR INPUT FIELDS (Year, Tour, etc.) --- */
-    /* Text inside Selectbox */
+    /* Target inputs and selectboxes for bold text */
     div[data-baseweb="select"] > div {
         font-weight: 600 !important;
         color: #000000 !important;
     }
     
-    /* Text inside Text Input (the "26" field) */
     .stTextInput input {
         font-weight: 600 !important;
         color: #000000 !important;
@@ -60,7 +58,6 @@ st.markdown("""
         font-weight: 500 !important;
         font-size: 1rem !important;
     }
-
     button[aria-selected="true"] p {
         font-weight: 600 !important;
     }
@@ -112,7 +109,7 @@ def fetch_data(url, code):
         if "application/json" in response.headers.get("Content-Type", ""):
             return response.json()
         else:
-            return {"error": "Server error (Non-JSON)"}
+            return {"error": "Server error (Non-JSON content)"}
     except Exception as e:
         return {"error": str(e)}
 
@@ -168,21 +165,29 @@ year_code = st.sidebar.text_input("Year", "26", disabled=st.session_state.is_loa
 tour_id = TOURS[selected_tour_name]["id"]
 url_attuale = TOURS[selected_tour_name]["url"]
 
+# RESET LOGIC ON TOUR CHANGE
 if st.session_state.prev_tour != selected_tour_name:
     st.session_state.prev_tour = selected_tour_name
+    # Force reset to defaults
+    st.session_state.current_group = "A"
+    st.session_state.current_stage = "1"
     st.session_state.is_loading = True
 
 group_options = list(string.ascii_uppercase)[:st.session_state.total_groups]
 stage_options = [str(i) for i in range(1, st.session_state.total_stages + 1)]
 
+# Ensure values are valid for current options
+if st.session_state.current_group not in group_options: st.session_state.current_group = "A"
+if st.session_state.current_stage not in stage_options: st.session_state.current_stage = "1"
+
 selected_group = st.sidebar.selectbox(
     "Select Group", group_options, 
-    index=group_options.index(st.session_state.current_group) if st.session_state.current_group in group_options else 0,
+    index=group_options.index(st.session_state.current_group),
     disabled=st.session_state.is_loading, on_change=trigger_loading
 )
 selected_stage = st.sidebar.selectbox(
     "Select Stage", stage_options, 
-    index=stage_options.index(st.session_state.current_stage) if st.session_state.current_stage in stage_options else 0,
+    index=stage_options.index(st.session_state.current_stage),
     disabled=st.session_state.is_loading, on_change=trigger_loading
 )
 
