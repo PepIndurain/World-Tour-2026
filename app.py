@@ -5,6 +5,49 @@ import string
 
 st.set_page_config(layout="wide", page_title="Cycling Pro Hub") 
 
+# --- 0. CUSTOM CSS PER TESTO PIÙ NERO E DEFINITO ---
+st.markdown("""
+    <style>
+    /* Testo generale e etichette dei widget */
+    html, body, [data-testid="stWidgetLabel"] p, .st-ae {
+        color: #000000 !important;
+        font-weight: 500 !important;
+    }
+    
+    /* Titoli */
+    h1, h2, h3 {
+        color: #000000 !important;
+        font-weight: 800 !important;
+    }
+
+    /* Testo all'interno dei widget (selectbox, input) */
+    .stSelectbox div[data-baseweb="select"] > div {
+        color: #000000 !important;
+        font-weight: 600 !important;
+    }
+
+    /* Testo della Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #f8f9fb;
+    }
+    [data-testid="stSidebar"] .st-expanderHeader, [data-testid="stSidebar"] label p {
+        color: #000000 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Celle delle tabelle/DataFrame */
+    [data-testid="stTable"] td, [data-testid="stDataFrame"] td {
+        color: #000000 !important;
+    }
+    
+    /* Testo informativo (st.info, st.success) */
+    .stAlert p {
+        color: #000000 !important;
+        font-weight: 600 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 # --- 1. TOUR CONFIGURATION ---
 TOURS = {
     "Itzulia Basque Country (5)": {
@@ -97,7 +140,7 @@ if "is_loading" not in st.session_state: st.session_state.is_loading = False
 st.title("🚴 World Tour Cycling Dashboard")
 st.sidebar.header("Settings")
 
-# 1. Selezione Tour
+# Selezione Tour
 selected_tour_name = st.sidebar.selectbox(
     "Select Tour", 
     list(TOURS.keys()), 
@@ -109,18 +152,15 @@ year_code = st.sidebar.text_input("Year (e.g., 26)", "26", disabled=st.session_s
 tour_id = TOURS[selected_tour_name]["id"]
 url_attuale = TOURS[selected_tour_name]["url"]
 
-# Cambio Tour Rilevato
 if st.session_state.prev_tour != selected_tour_name:
     st.session_state.prev_tour = selected_tour_name
     st.session_state.current_group = "A"
     st.session_state.current_stage = "1"
     st.session_state.is_loading = True
 
-# Opzioni dinamiche
 group_options = list(string.ascii_uppercase)[:st.session_state.total_groups]
 stage_options = [str(i) for i in range(1, st.session_state.total_stages + 1)]
 
-# Fallback indici
 if st.session_state.current_group not in group_options: st.session_state.current_group = group_options[0]
 if st.session_state.current_stage not in stage_options: st.session_state.current_stage = stage_options[0]
 
@@ -144,7 +184,6 @@ selected_stage = st.sidebar.selectbox(
     key="stage_box"
 )
 
-# Se i valori nel widget sono diversi da quelli salvati, attiva caricamento
 if selected_group != st.session_state.current_group or selected_stage != st.session_state.current_stage:
     st.session_state.is_loading = True
 
@@ -155,7 +194,7 @@ if st.session_state.is_loading:
     
     codice_call = f"{year_code}.{tour_id}.{selected_group}.{selected_stage}"
     
-    # MESSAGGIO PERSONALIZZATO: Utilizza i nomi invece del codice
+    # Messaggio descrittivo durante il caricamento
     msg = f"Fetching: {selected_tour_name} - Group {selected_group}, Stage {selected_stage}..."
     
     with st.spinner(msg):
@@ -167,10 +206,6 @@ if st.session_state.is_loading:
     
     st.session_state.is_loading = False
     st.rerun()
-
-# Info finale
-codice_finale = f"{year_code}.{tour_id}.{st.session_state.current_group}.{st.session_state.current_stage}"
-st.sidebar.info(f"**Race Code:** `{codice_finale}`")
 
 # --- RENDER DEI DATI ---
 data = st.session_state.json_data
