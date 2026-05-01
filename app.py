@@ -16,7 +16,6 @@ REPO_NAME = "World-Tour-2026"
 BASE_IMAGE_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{REPO_NAME}/main/"
 
 # --- DICTIONARY FOR COLUMN TRANSLATION ---
-# Questo traduce le chiavi del database in nomi leggibili in inglese
 COLUMN_MAP = {
     "rank": "Rank",
     "trend": "Trend",
@@ -94,9 +93,9 @@ if codice_gara:
             if "error" in data:
                 st.error(data["error"])
             else:
-                st.info(f"📍 Viewing: {data.get('currentCode', '')}")
+                # MODIFICA: Da "Viewing" a "Stage"
+                st.info(f"📍 Stage: {data.get('currentCode', '')}")
                 
-                # Traduzione nomi dei Tab
                 tabs = st.tabs([
                     "🏁 Stage Results", 
                     "🟡 General (GC)", 
@@ -113,18 +112,14 @@ if codice_gara:
                         if not df.empty:
                             df = df.fillna("")
 
-                            # Gestione Maglie
                             if 'jersey' in df.columns:
                                 df['jersey_raw'] = df['jersey']
                                 df['jersey'] = df['jersey_raw'].apply(get_jersey_url)
                             
-                            # Gestione Leaders
                             if 'leaders' in df.columns:
                                 df['leaders'] = df['leaders'].apply(get_leader_emojis)
                             
-                            # Traduzione intestazioni colonne
                             df = df.rename(columns=COLUMN_MAP)
-                            
                             styled_df = df.style.apply(style_cycling_rows, axis=1)
                             
                             st.header(title)
