@@ -6,12 +6,13 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: CUSTOM STYLING ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & READABILITY) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     html, body, p, div, label { font-family: 'Inter', sans-serif !important; color: #000000 !important; }
     
+    /* Header Rosso */
     .main-header {
         background: linear-gradient(95deg, #FF4B4B 0%, #C1272D 100%);
         padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 25px;
@@ -19,19 +20,39 @@ st.markdown("""
     }
     .main-header h1 { color: #FFFFFF !important; font-weight: 800 !important; font-size: 2.8rem !important; margin: 0 !important; text-transform: uppercase; }
 
-    /* Tables Style (Pure Black and Bold) */
+    /* Stile Tabelle: Nero Puro e Grassetto per PC */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
+
+    /* Hall of Fame: Allineamento Grid */
+    .hof-header-grid {
+        display: grid; grid-template-columns: 100px repeat(4, 1fr);
+        text-align: center; margin-bottom: 15px; background: #f8f9fa;
+        padding: 15px 10px; border-radius: 10px; align-items: end;
+    }
+    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.9rem; }
+    .hof-row {
+        display: grid; grid-template-columns: 100px repeat(4, 1fr); gap: 15px;
+        background: #ffffff; border: 2px solid #000000; border-radius: 12px;
+        margin-bottom: 12px; padding: 15px 10px; align-items: center; box-shadow: 4px 4px 0px #eee;
+    }
+    .group-label { font-size: 2.5rem; font-weight: 800; color: #C1272D; text-align: center; border-right: 2px solid #eee; }
+    .jersey-box { text-align: left; padding-left: 10px; }
+    .rider-name { font-size: 1.2rem; font-weight: 700; color: #000000; display: block; line-height: 1.2; }
+    .team-name { font-size: 0.85rem; font-weight: 600; color: #555; text-transform: uppercase; }
     </style>
     """, unsafe_allow_html=True)
 
 # --- 2. CONFIGURATION & COLUMN MAPPING ---
+MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec"
+
 BASE_COLUMN_MAP = {
     "rank": "Rank", "trend": "Trend", "player": "Rider", "team": "Team",
     "jersey": "Jersey", "type": "Type", "name": "Rider Name",
     "leaders": "Leaders", "bonusWtp": "Bonus WTP", "teamName": "Team Name",
-    "currentWtp": "Current WTP", "e2": "Energy"
+    "currentWtp": "Current WTP", "e2": "Energy", "stageTime": "Stage Time", 
+    "wtp": "WTP", "bonusSeconds": "Bonus (s)"
 }
 
 TOURS = {
@@ -42,7 +63,6 @@ TOURS = {
     "Paris-Nice (1)": {"url": "https://script.google.com/macros/s/AKfycbyxixETwMCar087CvsXG6uTiYIUbm9TX9kFKCWzIHOCUURemBR2oVVCB15JU32dFwYY/exec", "id": "1"}
 }
 
-MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec"
 BASE_IMAGE_URL = "https://raw.githubusercontent.com/PepIndurain/World-Tour-2026/main/"
 
 # --- 3. HELPER FUNCTIONS ---
@@ -64,7 +84,13 @@ def get_leader_emojis(val):
 
 def style_rows(row):
     text_style = 'color: #000000; font-weight: 700;'
-    j = str(row['jersey_raw']).lower() if 'jersey_raw' in row else str(row.get('Jersey', '')).lower()
+    # Cerca il colore della maglia per applicare lo sfondo riga
+    j = ""
+    if 'jersey_raw' in row: j = str(row['jersey_raw'])
+    elif 'Jersey' in row: j = str(row['Jersey'])
+    elif 'jersey' in row: j = str(row['jersey'])
+    
+    j = j.lower()
     bg = ""
     if 'yellow' in j: bg = "#FFF2CC"
     elif 'green' in j: bg = "#E2F0D9"
@@ -84,7 +110,9 @@ if page == "Live Dashboard":
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
         st.session_state.is_loading = True
     
-    total_g, total_s = st.session_state.get("total_groups", 6), st.session_state.get("total_stages", 10)
+    total_g = st.session_state.get("total_groups", 6)
+    total_s = st.session_state.get("total_stages", 10)
+    
     sel_group = st.sidebar.selectbox("Group", list(string.ascii_uppercase)[:total_g], index=list(string.ascii_uppercase).index(st.session_state.current_group) if st.session_state.current_group in list(string.ascii_uppercase) else 0)
     sel_stage = st.sidebar.selectbox("Stage", [str(i) for i in range(1, total_s + 1)], index=int(st.session_state.current_stage)-1 if int(st.session_state.current_stage) <= total_s else 0)
 
@@ -93,7 +121,9 @@ if page == "Live Dashboard":
         with st.spinner("Fetching Data..."):
             url = f"{TOURS[selected_tour]['url']}?code=26.{TOURS[selected_tour]['id']}.{sel_group}.{sel_stage}"
             data = requests.get(url).json()
-            st.session_state.json_data, st.session_state.total_groups, st.session_state.total_stages = data, data.get("totalGroups", 6), data.get("totalStages", 10)
+            st.session_state.json_data = data
+            st.session_state.total_groups = data.get("totalGroups", 6)
+            st.session_state.total_stages = data.get("totalStages", 10)
         st.session_state.is_loading = False
         st.rerun()
 
@@ -102,11 +132,9 @@ if page == "Live Dashboard":
     if d:
         st.success(f"📍 {selected_tour} | Group {st.session_state.current_group} | Stage {st.session_state.current_stage}")
         
-        # AGGIUNTO IL TAB "🏆 Team TP"
+        # DEFINIZIONE TAB
         tabs = st.tabs(["🏁 Stage", "🟡 GC", "🟢 Points", "🔴 KOM", "🔵 TP", "👥 Team GC", "🏆 Team TP", "🚀 Next Stage Grid"])
-        
-        # AGGIUNTA LA CHIAVE "teamTpClassification"
-        keys = ["stageResults", "generalClassification", "sprintClassification", "mountainClassification", "tpClassification", "teamTimeClassification", "teamTpClassification", "nextStageGrid"]
+        keys = ["stageResults", "generalClassification", "sprintClassification", "mountainClassification", "tpClassification", "teamTimeClassification", "teamTPClassification", "nextStageGrid"]
         
         for i, k in enumerate(keys):
             with tabs[i]:
@@ -117,7 +145,7 @@ if page == "Live Dashboard":
                         df['jersey_raw'] = df['jersey']
                         df['jersey'] = df['jersey_raw'].apply(get_jersey_icon)
                     
-                    # Mapping dinamico
+                    # LOGICA MAPPATURA DINAMICA COLONNE
                     current_map = BASE_COLUMN_MAP.copy()
                     if k == "generalClassification":
                         current_map["stagePts"] = "Stage GC Time"
@@ -130,13 +158,67 @@ if page == "Live Dashboard":
                     
                     df = df.rename(columns=current_map)
                     st.dataframe(df.style.apply(style_rows, axis=1), use_container_width=True, hide_index=True, column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None})
-                else:
-                    st.warning(f"No data available for {k}")
 
 elif page == "🏆 Hall of Fame":
-    # (Codice Hall of Fame invariato...)
-    pass
+    st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1><p>Final Tour Winners by Group</p></div>', unsafe_allow_html=True)
+    sel_tour_hof = st.selectbox("Choose Tour to display FINAL Champions:", list(TOURS.keys()))
+    
+    @st.cache_data(ttl=600)
+    def get_final_winners(tour_name):
+        t_info = TOURS[tour_name]
+        try:
+            meta = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.A.1").json()
+            num_groups = meta.get("totalGroups", 1)
+            last_stage = meta.get("totalStages", 1)
+            results = []
+            for lit in list(string.ascii_uppercase)[:num_groups]:
+                res = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.{lit}.{last_stage}").json()
+                get_t = lambda k: {"name": res[k][0]["name"], "team": res[k][0].get("teamName", res[k][0].get("team", ""))} if res.get(k) else {"name": "No Winner", "team": "-"}
+                results.append({"group": lit, "yellow": get_t("generalClassification"), "green": get_t("sprintClassification"), "polkadot": get_t("mountainClassification"), "white": get_t("teamTimeClassification")})
+            return results
+        except: return []
+
+    final_winners = get_final_winners(sel_tour_hof)
+    if final_winners:
+        st.markdown(f"""
+            <div class="hof-header-grid">
+                <div class="hof-header-item">Group</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('yellow')}" width="40"><br>GC</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('green')}" width="40"><br>Points</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('polkadot')}" width="40"><br>KOM</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('white')}" width="40"><br>Team</div>
+            </div>
+        """, unsafe_allow_html=True)
+        for w in final_winners:
+            row_html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
+            for col in ["yellow", "green", "polkadot", "white"]:
+                row_html += f'<div class="jersey-box"><span class="rider-name">{w[col]["name"]}</span><span class="team-name">{w[col]["team"]}</span></div>'
+            st.markdown(row_html + "</div>", unsafe_allow_html=True)
 
 else:
-    # (Codice Master Standings invariato...)
-    pass
+    # --- 📊 MASTER STANDINGS ---
+    st.markdown('<div class="main-header"><h1>📊 Master Standings</h1><p>World Tour Global Rankings</p></div>', unsafe_allow_html=True)
+    if st.button("🔄 Force Refresh Standings"):
+        st.cache_data.clear()
+        st.rerun()
+
+    @st.cache_data(ttl=600)
+    def fetch_master():
+        try:
+            return requests.get(MASTER_URL, timeout=20).json()
+        except: return {"error": "Connection error."}
+
+    master_data = fetch_master()
+    if "error" in master_data: st.error(master_data["error"])
+    else:
+        tr, tt = st.tabs(["👤 Overall Riders Standings", "👥 Overall Teams Standings"])
+        with tr:
+            df_r = pd.DataFrame(master_data.get("ridersMaster", []))
+            if not df_r.empty:
+                df_r['WTP'] = pd.to_numeric(df_r['WTP'], errors='coerce').round(2)
+                st.dataframe(df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]], use_container_width=True, hide_index=True)
+        with tt:
+            df_t = pd.DataFrame(master_data.get("teamsMaster", []))
+            if not df_t.empty:
+                df_t['WTP'] = pd.to_numeric(df_t['WTP'], errors='coerce').round(2)
+                st.dataframe(df_t[["Rank", "Player", "Team Name", "WTP"]], use_container_width=True, hide_index=True)
