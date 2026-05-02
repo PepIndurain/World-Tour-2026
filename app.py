@@ -6,7 +6,7 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & CLEAN HOF TABLE) ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & AUTO-SCALING HOF) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -36,49 +36,56 @@ st.markdown("""
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
 
-    /* --- HALL OF FAME: CLEAN TABLE DESIGN --- */
-    .hof-scroll-container {
-        overflow-x: auto; 
-        padding-bottom: 20px;
-        -webkit-overflow-scrolling: touch;
-    }
-    .hof-inner-box {
-        min-width: 1000px; /* Garantisce spazio a sufficienza per 5 colonne */
+    /* --- HALL OF FAME: FULLY RESPONSIVE NO-SCROLL --- */
+    .hof-container {
+        width: 100%;
+        margin-top: 10px;
     }
     
     .hof-header-grid {
         display: grid; 
-        grid-template-columns: 80px repeat(4, 1fr);
+        grid-template-columns: 50px repeat(4, 1fr); /* Colonna gruppo stretta */
         text-align: center; 
         background: #f1f3f5;
-        padding: 20px 10px; 
+        padding: 10px 5px; 
         border-radius: 10px 10px 0 0;
         align-items: end;
         border-bottom: 2px solid #000000;
     }
-    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.9rem; color: #000000; }
-    .header-jersey { width: 45px; margin-bottom: 8px; }
+    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.8rem; color: #000000; }
+    .header-jersey { width: 35px; margin-bottom: 5px; }
 
     .hof-row {
         display: grid; 
-        grid-template-columns: 80px repeat(4, 1fr); 
-        gap: 0px; 
+        grid-template-columns: 50px repeat(4, 1fr); 
         background: #ffffff;
-        padding: 15px 10px;
+        padding: 12px 5px;
         align-items: center;
-        border-bottom: 1px solid #dee2e6; /* Separatore leggero tra righe */
+        border-bottom: 1px solid #dee2e6;
     }
-    .hof-row:hover { background-color: #f8f9fa; } /* Effetto al passaggio del mouse */
 
-    .group-label { font-size: 2.2rem; font-weight: 800; color: #C1272D; text-align: center; }
+    .group-label { font-size: 1.8rem; font-weight: 800; color: #C1272D; text-align: center; }
     
     .jersey-box { 
         text-align: left; 
-        padding: 0 15px;
+        padding: 0 8px;
         border-left: 1px solid #f0f0f0;
+        word-wrap: break-word; /* Forza il testo ad andare a capo */
+        overflow-wrap: break-word;
     }
-    .rider-name { font-size: 1.1rem; font-weight: 700; color: #000000; display: block; line-height: 1.2; white-space: nowrap; }
-    .team-name { font-size: 0.85rem; font-weight: 600; color: #666; text-transform: uppercase; }
+    .rider-name { font-size: 1rem; font-weight: 700; color: #000000; display: block; line-height: 1.1; }
+    .team-name { font-size: 0.75rem; font-weight: 600; color: #666; text-transform: uppercase; }
+
+    /* --- MEDIA QUERY PER SMARTPHONE: RIDUZIONE CARATTERI --- */
+    @media (max-width: 768px) {
+        .hof-header-item { font-size: 0.6rem !important; }
+        .header-jersey { width: 25px !important; }
+        .group-label { font-size: 1.3rem !important; }
+        .rider-name { font-size: 0.75rem !important; }
+        .team-name { font-size: 0.6rem !important; }
+        .jersey-box { padding: 0 4px !important; }
+        .hof-row { padding: 8px 2px !important; }
+    }
 
     /* Fix Icons */
     [data-testid="stIcon"] { font-family: inherit !important; }
@@ -213,7 +220,7 @@ elif page == "🏆 Hall of Fame":
 
     winners = get_hof(sel_hof)
     if winners:
-        st.markdown('<div class="hof-scroll-container"><div class="hof-inner-box">', unsafe_allow_html=True)
+        st.markdown('<div class="hof-container">', unsafe_allow_html=True)
         st.markdown(f"""
             <div class="hof-header-grid">
                 <div class="hof-header-item">Group</div>
@@ -231,7 +238,7 @@ elif page == "🏆 Hall of Fame":
                     <span class="team-name">{w[k]['team']}</span>
                 </div>"""
             st.markdown(html + "</div>", unsafe_allow_html=True)
-        st.markdown('</div></div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
 else:
     st.markdown('<div class="main-header"><h1>📊 Master Standings</h1></div>', unsafe_allow_html=True)
