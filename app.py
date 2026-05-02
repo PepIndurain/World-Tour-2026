@@ -241,7 +241,7 @@ elif page == "🏆 Hall of Fame":
         st.markdown('</div>', unsafe_allow_html=True)
 
 else:
-    st.markdown('<div class="main-header"><h1>📊 Master Standings</h1></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"><h1>📊 Overall Standings</h1></div>', unsafe_allow_html=True)
     if st.button("🔄 Refresh Master"): st.cache_data.clear()
     m_data = requests.get(MASTER_URL).json()
     tr, tt = st.tabs(["👤 Riders", "👥 Teams"])
