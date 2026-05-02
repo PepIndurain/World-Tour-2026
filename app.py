@@ -2,12 +2,13 @@ import streamlit as st
 import requests
 import pandas as pd
 import string
-from concurrent.futures import ThreadPoolExecutor # Motore per la velocità
+from concurrent.futures import ThreadPoolExecutor
+import time
 
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: TUTTI GLI STILI PRECEDENTI PRESERVATI ---
+# --- 1. CSS: TUTTI GLI STILI PRESERVATI ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -51,7 +52,6 @@ st.markdown("""
     .rider-name { font-size: 1rem; font-weight: 700; color: #000000; display: block; line-height: 1.1; }
     .team-name { font-size: 0.75rem; font-weight: 600; color: #666; text-transform: uppercase; }
 
-    /* Media Query per Smartphone */
     @media (max-width: 768px) {
         .main-header { padding: 12px 10px !important; margin-bottom: 15px !important; border-radius: 10px !important; }
         .main-header h1 { font-size: 1.4rem !important; }
@@ -181,31 +181,32 @@ elif page == "🏆 Hall of Fame":
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1></div>', unsafe_allow_html=True)
     sel_hof = st.selectbox("Choose Tour:", list(TOURS.keys()))
     
-    # --- MOTORE VELOCE (PARALLELO) ---
     def fetch_group_data(args):
         url, tid, lit, stage = args
         try:
-            r = requests.get(f"{url}?code=26.{tid}.{lit}.{stage}", timeout=10).json()
+            r = requests.get(f"{url}?code=26.{tid}.{lit}.{stage}", timeout=15).json()
             def gt(k): return {"name": r[k][0]["name"], "team": r[k][0].get("teamName", r[k][0].get("team", ""))} if r.get(k) and len(r[k])>0 else {"name": "N/A", "team": "-"}
-            return {"group": lit, "yellow": gt("generalClassification"), "green": gt("sprintClassification"), "polkadot": gt("mountainClassification"), "white": gt("teamTimeClassification")}
+            return {"group": lit, "yellow": gt("generalClassification"), "green": gt("sprintClassification"), "polkadot": gt("mountainClassification"), "white": gt("teamTPClassification")}
         except: return None
 
     @st.cache_data(ttl=600)
-    def get_hof_fast(t_name):
+    def get_hof_stable(t_name):
         t = TOURS[t_name]
         try:
-            m = requests.get(f"{t['url']}?code=26.{t['id']}.A.1", timeout=10).json()
+            m = requests.get(f"{t['url']}?code=26.{t['id']}.A.1", timeout=15).json()
             letters = list(string.ascii_uppercase)[:m.get("totalGroups", 1)]
             last_s = m.get("totalStages", 1)
-            # Prepariamo le chiamate parallele
             tasks = [(t['url'], t['id'], lit, last_s) for lit in letters]
-            with ThreadPoolExecutor(max_workers=10) as executor:
+            # Usiamo solo 3 workers per non mandare in blocco Google
+            with ThreadPoolExecutor(max_workers=3) as executor:
                 results = list(executor.map(fetch_group_data, tasks))
-            return [r for r in results if r]
+            # Filtriamo e ordiniamo per lettera gruppo
+            final = [r for r in results if r is not None]
+            return sorted(final, key=lambda x: x['group'])
         except: return []
 
-    with st.spinner("Speed-fetching all groups..."):
-        winners = get_hof_fast(sel_hof)
+    with st.spinner("Analyzing all groups..."):
+        winners = get_hof_stable(sel_hof)
 
     if winners:
         st.markdown(f"""
@@ -220,29 +221,24 @@ elif page == "🏆 Hall of Fame":
         for w in winners:
             html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
             for k in ["yellow", "green", "polkadot", "white"]:
-                html += f'<div class="jersey-box"><span class="rider-name">{w[k]["name"]}</span><span class="team-name">{w[k]["team"]}</span></div>'
+                html += f"""<div class="jersey-box">
+                    <span class="rider-name">{w[k]['name']}</span>
+                    <span class="team-name">{w[k]['team']}</span>
+                </div>"""
             st.markdown(html + "</div>", unsafe_allow_html=True)
 
 else:
-    # --- 📊 OVERALL STANDINGS ---
     st.markdown('<div class="main-header"><h1>📊 Overall Standings</h1></div>', unsafe_allow_html=True)
-    if st.button("🔄 Force Refresh Master"): st.cache_data.clear()
-    
-    @st.cache_data(ttl=600)
-    def fetch_master_fast():
-        try: return requests.get(MASTER_URL, timeout=15).json()
-        except: return {}
-
-    m_data = fetch_master_fast()
-    if m_data:
-        tr, tt = st.tabs(["👤 Riders", "👥 Teams"])
-        with tr:
-            df_r = pd.DataFrame(m_data.get("ridersMaster", []))
-            if not df_r.empty:
-                df_r['WTP'] = pd.to_numeric(df_r['WTP'], errors='coerce').round(2)
-                st.dataframe(df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]], use_container_width=True, hide_index=True)
-        with tt:
-            df_t = pd.DataFrame(m_data.get("teamsMaster", []))
-            if not df_t.empty:
-                df_t['WTP'] = pd.to_numeric(df_t['WTP'], errors='coerce').round(2)
-                st.dataframe(df_t[["Rank", "Player", "Team Name", "WTP"]], use_container_width=True, hide_index=True)
+    if st.button("🔄 Refresh Master"): st.cache_data.clear()
+    m_data = requests.get(MASTER_URL).json()
+    tr, tt = st.tabs(["👤 Riders", "👥 Teams"])
+    with tr:
+        df_r = pd.DataFrame(m_data.get("ridersMaster", []))
+        if not df_r.empty:
+            df_r['WTP'] = pd.to_numeric(df_r['WTP'], errors='coerce').round(2)
+            st.dataframe(df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]], use_container_width=True, hide_index=True)
+    with tt:
+        df_t = pd.DataFrame(m_data.get("teamsMaster", []))
+        if not df_t.empty:
+            df_t['WTP'] = pd.to_numeric(df_t['WTP'], errors='coerce').round(2)
+            st.dataframe(df_t[["Rank", "Player", "Team Name", "WTP"]], use_container_width=True, hide_index=True)
