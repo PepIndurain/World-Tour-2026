@@ -6,7 +6,7 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & FIXED HOF GRID) ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & READABILITY) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -19,55 +19,43 @@ st.markdown("""
     }
     .main-header h1 { color: #FFFFFF !important; font-weight: 800 !important; font-size: 2.8rem !important; margin: 0 !important; text-transform: uppercase; }
 
-    /* --- HALL OF FAME ALIGNMENT --- */
+    /* Hall of Fame Style */
     .hof-header-grid {
-        display: grid;
-        grid-template-columns: 100px repeat(4, 1fr); /* Match exactly with hof-row */
-        text-align: center;
-        margin-bottom: 15px;
-        background: #f8f9fa;
-        padding: 15px 10px;
-        border-radius: 10px;
-        align-items: end;
+        display: grid; grid-template-columns: 100px repeat(4, 1fr);
+        text-align: center; margin-bottom: 15px; background: #f8f9fa;
+        padding: 15px 10px; border-radius: 10px; align-items: end;
     }
-    .hof-header-item {
-        font-weight: 800;
-        text-transform: uppercase;
-        font-size: 0.9rem;
-    }
-
+    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.9rem; }
     .hof-row {
-        display: grid;
-        grid-template-columns: 100px repeat(4, 1fr); /* 100px for Group, then 4 equal columns */
-        gap: 15px;
-        background: #ffffff;
-        border: 2px solid #000000;
-        border-radius: 12px;
-        margin-bottom: 12px;
-        padding: 15px 10px;
-        align-items: center;
-        box-shadow: 4px 4px 0px #eee;
+        display: grid; grid-template-columns: 100px repeat(4, 1fr); gap: 15px;
+        background: #ffffff; border: 2px solid #000000; border-radius: 12px;
+        margin-bottom: 12px; padding: 15px 10px; align-items: center; box-shadow: 4px 4px 0px #eee;
     }
-    .group-label {
-        font-size: 2.5rem; font-weight: 800; color: #C1272D; text-align: center;
-        border-right: 2px solid #eee;
-    }
-    .jersey-box { 
-        text-align: left; 
-        padding-left: 10px; 
-    }
-    .rider-name { font-size: 1.2rem; font-weight: 700; color: #000000; display: block; line-height: 1.2; margin-bottom: 2px; }
+    .group-label { font-size: 2.5rem; font-weight: 800; color: #C1272D; text-align: center; border-right: 2px solid #eee; }
+    .jersey-box { text-align: left; padding-left: 10px; }
+    .rider-name { font-size: 1.2rem; font-weight: 700; color: #000000; display: block; line-height: 1.2; }
     .team-name { font-size: 0.85rem; font-weight: 600; color: #555; text-transform: uppercase; }
     
-    /* Tables Style */
+    /* Tables Style (Pure Black and Bold) */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. CONFIGURATION ---
-MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec" # Da riempire con il tuo URL Master
+# --- 2. CONFIGURATION & COLUMN MAPPING ---
+COLUMN_MAP = {
+    "rank": "Rank", "trend": "Trend", "player": "Rider", "team": "Team",
+    "jersey": "Jersey", "type": "Type", "name": "Rider Name",
+    "bonusSeconds": "Bonus (s)", "stageTime": "Stage Time", "wtp": "WTP",
+    "leaders": "Leaders", 
+    "stagePts": "Stage GC Time",   # <--- CORRETTO
+    "tourPts": "Tour Time",        # <--- CORRETTO
+    "bonusWtp": "Bonus WTP", "currentWtp": "Current WTP", "stageTimes": "Stage Time",
+    "tourTimes": "Total Time", 
+    "grid": "Next Stage Grid",     # <--- CORRETTO
+    "teamName": "Team Name", "e2": "Energy"
+}
 
 TOURS = {
     "Itzulia Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec", "id": "5"},
@@ -77,11 +65,13 @@ TOURS = {
     "Paris-Nice (1)": {"url": "https://script.google.com/macros/s/AKfycbyxixETwMCar087CvsXG6uTiYIUbm9TX9kFKCWzIHOCUURemBR2oVVCB15JU32dFwYY/exec", "id": "1"}
 }
 
+MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec"
 BASE_IMAGE_URL = "https://raw.githubusercontent.com/PepIndurain/World-Tour-2026/main/"
 
 # --- 3. HELPER FUNCTIONS ---
 def get_jersey_icon(color):
-    return f"{BASE_IMAGE_URL}{color}-jersey.png"
+    if not color or str(color).lower() in ["none", ""]: return ""
+    return f"{BASE_IMAGE_URL}{color.split('-')[0].lower()}-jersey.png"
 
 def get_leader_emojis(val):
     if isinstance(val, list):
@@ -97,8 +87,8 @@ def get_leader_emojis(val):
 
 def style_rows(row):
     text_style = 'color: #000000; font-weight: 700;'
-    # Cerchiamo il colore direttamente nella stringa (che sia un nome semplice o un URL)
-    j = str(row['jersey']).lower() if 'jersey' in row else ''
+    # Usiamo jersey_raw per lo stile se esiste, altrimenti jersey
+    j = str(row['jersey_raw']).lower() if 'jersey_raw' in row else str(row.get('Jersey', '')).lower()
     bg = ""
     if 'yellow' in j: bg = "#FFF2CC"
     elif 'green' in j: bg = "#E2F0D9"
@@ -118,6 +108,7 @@ if page == "Live Dashboard":
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
         st.session_state.is_loading = True
     
+    # Dinamici
     total_g = st.session_state.get("total_groups", 6)
     total_s = st.session_state.get("total_stages", 10)
     sel_group = st.sidebar.selectbox("Group", list(string.ascii_uppercase)[:total_g], index=list(string.ascii_uppercase).index(st.session_state.current_group) if st.session_state.current_group in list(string.ascii_uppercase) else 0)
@@ -138,36 +129,30 @@ if page == "Live Dashboard":
     d = st.session_state.get("json_data", {})
     if d:
         st.success(f"📍 {selected_tour} | Group {st.session_state.current_group} | Stage {st.session_state.current_stage}")
-        tabs = st.tabs(["🏁 Stage", "🟡 GC", "🟢 Points", "🔴 KOM", "👥 Team", "🚀 Next"])
-        keys = ["stageResults", "generalClassification", "sprintClassification", "mountainClassification", "teamTimeClassification", "nextStageGrid"]
+        # RIPRISTINO TAB
+        tabs = st.tabs(["🏁 Stage", "🟡 GC", "🟢 Points", "🔴 KOM", "🔵 TP", "👥 Team", "🚀 Next Stage Grid"])
+        keys = ["stageResults", "generalClassification", "sprintClassification", "mountainClassification", "tpClassification", "teamTimeClassification", "nextStageGrid"]
+        
         for i, k in enumerate(keys):
             with tabs[i]:
                 df = pd.DataFrame(d.get(k, [])).fillna("")
                 if not df.empty:
+                    if 'leaders' in df.columns: df['leaders'] = df['leaders'].apply(get_leader_emojis)
                     if 'jersey' in df.columns:
-                        # Trasformiamo la colonna 'jersey' direttamente in URL
-                        # Il nome della colonna deve coincidere con quello in column_config
-                        df['jersey'] = df['jersey'].apply(lambda x: get_jersey_icon(x.split('-')[0]) if x else "")
-                    if 'leaders' in df.columns:
-                        df['leaders'] = df['leaders'].apply(get_leader_emojis)
+                        df['jersey_raw'] = df['jersey']
+                        df['jersey'] = df['jersey_raw'].apply(get_jersey_icon)
                     
+                    df = df.rename(columns=COLUMN_MAP)
                     st.dataframe(
                         df.style.apply(style_rows, axis=1), 
-                        use_container_width=True, 
-                        hide_index=True, 
-                        column_config={
-                            "jersey": st.column_config.ImageColumn("jersey")
-                        }
+                        use_container_width=True, hide_index=True, 
+                        column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None}
                     )
 
 elif page == "🏆 Hall of Fame":
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1><p>Final Tour Winners by Group</p></div>', unsafe_allow_html=True)
     sel_tour_hof = st.selectbox("Choose Tour to display FINAL Champions:", list(TOURS.keys()))
     
-    if st.button("🔄 Refresh Winners"):
-        st.cache_data.clear()
-        st.rerun()
-
     @st.cache_data(ttl=600)
     def get_final_winners(tour_name):
         t_info = TOURS[tour_name]
@@ -183,69 +168,27 @@ elif page == "🏆 Hall of Fame":
             return results
         except: return []
 
-    with st.spinner("Analyzing Winners..."):
-        final_winners = get_final_winners(sel_tour_hof)
-
+    final_winners = get_final_winners(sel_tour_hof)
     if final_winners:
-        # --- FIXED HEADER WITH PERFECT ALIGNMENT ---
-        st.markdown(f"""
-            <div class="hof-header-grid">
-                <div class="hof-header-item">Group</div>
-                <div class="hof-header-item"><img src="{get_jersey_icon('yellow')}" width="40"><br>GC</div>
-                <div class="hof-header-item"><img src="{get_jersey_icon('green')}" width="40"><br>Points</div>
-                <div class="hof-header-item"><img src="{get_jersey_icon('polkadot')}" width="40"><br>KOM</div>
-                <div class="hof-header-item"><img src="{get_jersey_icon('white')}" width="40"><br>Team</div>
-            </div>
-        """, unsafe_allow_html=True)
-
+        st.markdown(f'<div class="hof-header-grid"><div class="hof-header-item">Group</div><div class="hof-header-item"><img src="{get_jersey_icon("yellow")}" width="40"><br>GC</div><div class="hof-header-item"><img src="{get_jersey_icon("green")}" width="40"><br>Points</div><div class="hof-header-item"><img src="{get_jersey_icon("polkadot")}" width="40"><br>KOM</div><div class="hof-header-item"><img src="{get_jersey_icon("white")}" width="40"><br>Team</div></div>', unsafe_allow_html=True)
         for w in final_winners:
-            row_html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
+            row = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
             for col in ["yellow", "green", "polkadot", "white"]:
-                row_html += f"""
-                <div class="jersey-box">
-                    <span class="rider-name">{w[col]['name']}</span>
-                    <span class="team-name">{w[col]['team']}</span>
-                </div>"""
-            row_html += "</div>"
-            st.markdown(row_html, unsafe_allow_html=True)
+                row += f'<div class="jersey-box"><span class="rider-name">{w[col]["name"]}</span><span class="team-name">{w[col]["team"]}</span></div>'
+            st.markdown(row + "</div>", unsafe_allow_html=True)
 
 else:
- # --- 📊 MASTER STANDINGS ---
-    st.markdown('<div class="main-header"><h1>📊 Master Standings</h1><p>World Tour Global Rankings</p></div>', unsafe_allow_html=True)
-    
-    # Inserisci il NUOVO URL qui sotto
-    # MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec"
-
-    if st.button("🔄 Force Refresh Standings"):
-        st.cache_data.clear()
-        st.rerun()
-
-    @st.cache_data(ttl=600)
-    def fetch_master():
-        try:
-            r = requests.get(MASTER_URL, timeout=20)
-            return r.json()
-        except: return {"error": "Connection error to Master File."}
-
-    master_data = fetch_master()
-
-    if "error" in master_data: 
-        st.error(master_data["error"])
-    else:
-        tr, tt = st.tabs(["👤 Overall Riders Standings", "👥 Overall Teams Standings"])
-        
-        with tr:
-            df_r = pd.DataFrame(master_data.get("ridersMaster", []))
-            if not df_r.empty:
-                df_r['WTP'] = pd.to_numeric(df_r['WTP'], errors='coerce').round(2)
-                st.dataframe(df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]], use_container_width=True, hide_index=True)
-            else:
-                st.warning("No rider data found.")
-
-        with tt:
-            df_t = pd.DataFrame(master_data.get("teamsMaster", []))
-            if not df_t.empty:
-                df_t['WTP'] = pd.to_numeric(df_t['WTP'], errors='coerce').round(2)
-                st.dataframe(df_t[["Rank", "Player", "Team Name", "WTP"]], use_container_width=True, hide_index=True)
-            else:
-                st.error("Team data not found. Make sure names are in Column Y starting from row 5.")
+    # --- 📊 MASTER STANDINGS ---
+    st.markdown('<div class="main-header"><h1>📊 Master Standings</h1></div>', unsafe_allow_html=True)
+    master_data = requests.get(MASTER_URL).json()
+    tr, tt = st.tabs(["👤 Riders", "👥 Teams"])
+    with tr:
+        df_r = pd.DataFrame(master_data.get("ridersMaster", []))
+        if not df_r.empty:
+            df_r['WTP'] = pd.to_numeric(df_r['WTP'], errors='coerce').round(2)
+            st.dataframe(df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]], use_container_width=True, hide_index=True)
+    with tt:
+        df_t = pd.DataFrame(master_data.get("teamsMaster", []))
+        if not df_t.empty:
+            df_t['WTP'] = pd.to_numeric(df_t['WTP'], errors='coerce').round(2)
+            st.dataframe(df_t[["Rank", "Player", "Team Name", "WTP"]], use_container_width=True, hide_index=True)
