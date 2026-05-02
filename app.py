@@ -67,7 +67,7 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- 2. CONFIGURATION ---
-MASTER_URL = "INSERISCI_QUI_IL_TUO_URL_MASTER" # Da riempire con il tuo URL Master
+MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec" # Da riempire con il tuo URL Master
 
 TOURS = {
     "Itzulia Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec", "id": "5"},
