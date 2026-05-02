@@ -6,7 +6,7 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & RESPONSIVE HOF) ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & TRUE RESPONSIVE GRID) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -25,7 +25,7 @@ st.markdown("""
     }
     .main-header h1 { color: #FFFFFF !important; font-weight: 800 !important; font-size: 2.8rem !important; margin: 0 !important; text-transform: uppercase; }
 
-    /* Cursore a manina */
+    /* Cursore a manina per menu e interazioni */
     div[data-baseweb="select"], div[data-baseweb="select"] > div, li[role="option"], 
     [data-testid="stSidebar"] label, [data-testid="stWidgetLabel"], button[data-baseweb="tab"] {
         cursor: pointer !important;
@@ -34,54 +34,57 @@ st.markdown("""
     /* Restore Streamlit Icons */
     [data-testid="stIcon"] { font-family: inherit !important; }
 
-    /* Stile Tabelle */
+    /* Stile Tabelle Live & Master */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
 
-    /* --- HALL OF FAME RESPONSIVE GRID --- */
+    /* --- HALL OF FAME: GRID LAYOUT (PC) --- */
+    .hof-container { margin-top: 20px; }
+    
     .hof-header-grid {
-        display: grid; grid-template-columns: 100px repeat(4, 1fr);
-        text-align: center; margin-bottom: 15px; background: #f8f9fa;
-        padding: 15px 10px; border-radius: 10px; align-items: end;
+        display: grid; 
+        grid-template-columns: 100px repeat(4, 1fr);
+        text-align: center; margin-bottom: 10px; background: #f8f9fa;
+        padding: 10px; border-radius: 10px; align-items: center;
     }
-    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.9rem; }
+    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.85rem; color: #666; }
     
     .hof-row {
-        display: grid; grid-template-columns: 100px repeat(4, 1fr); gap: 15px;
-        background: #ffffff; border: 2px solid #000000; border-radius: 12px;
-        margin-bottom: 12px; padding: 15px 10px; align-items: center; box-shadow: 4px 4px 0px #eee;
+        display: grid; 
+        grid-template-columns: 100px repeat(4, 1fr); 
+        gap: 10px; background: #ffffff; border: 2px solid #000000;
+        border-radius: 12px; margin-bottom: 15px; padding: 15px 10px;
+        align-items: center; box-shadow: 4px 4px 0px #eee;
     }
-    .group-label { font-size: 2.5rem; font-weight: 800; color: #C1272D; text-align: center; border-right: 2px solid #eee; }
-    .jersey-box { text-align: left; padding-left: 10px; }
-    .rider-name { font-size: 1.2rem; font-weight: 700; color: #000000; display: block; line-height: 1.2; }
-    .team-name { font-size: 0.85rem; font-weight: 600; color: #555; text-transform: uppercase; }
+    .group-label { font-size: 2.8rem; font-weight: 800; color: #C1272D; text-align: center; border-right: 2px solid #eee; }
     
-    /* Mobile labels (nascoste su PC) */
-    .mobile-label { display: none; font-size: 0.7rem; font-weight: 800; color: #C1272D; text-transform: uppercase; margin-bottom: 2px; }
+    .jersey-box { display: flex; align-items: center; text-align: left; padding-left: 10px; }
+    .jersey-icon-mini { width: 45px; margin-right: 10px; flex-shrink: 0; }
+    .rider-name { font-size: 1.15rem; font-weight: 700; color: #000000; display: block; line-height: 1.1; }
+    .team-name { font-size: 0.8rem; font-weight: 600; color: #666; text-transform: uppercase; }
 
     /* --- MEDIA QUERY PER TELEFONI --- */
     @media (max-width: 768px) {
         .hof-header-grid { display: none; } /* Nascondi intestazione su mobile */
         .hof-row {
-            grid-template-columns: 60px 1fr !important; /* Solo 2 colonne: Gruppo e Lista */
-            gap: 10px !important;
+            grid-template-columns: 70px 1fr !important; /* Solo lettera + lista */
             padding: 10px !important;
         }
-        .group-label { font-size: 1.8rem !important; padding-right: 10px !important; }
+        .group-label { font-size: 2rem !important; }
         .jersey-box { 
-            padding: 8px 0 !important; 
-            border-bottom: 1px solid #eee; 
-            padding-left: 5px !important;
+            margin-bottom: 12px; 
+            border-bottom: 1px solid #f0f0f0; 
+            padding-bottom: 8px; 
         }
-        .jersey-box:last-child { border-bottom: none; }
-        .mobile-label { display: block !important; } /* Mostra etichette maglia */
-        .rider-name { font-size: 1.1rem !important; }
+        .jersey-box:last-child { border-bottom: none; margin-bottom: 0; }
+        .jersey-icon-mini { width: 35px !important; }
+        .rider-name { font-size: 1rem !important; }
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. CONFIGURATION & COLUMN MAPPING ---
+# --- 2. CONFIGURATION & MAPPING ---
 MASTER_URL = "https://script.google.com/macros/s/AKfycbyOTpSNzycmZFrlgJ0tlCkQkKsK1A0TwZlO5uHyybiKyd5qGdBNyAP3xd8VecMgjqrELA/exec"
 
 BASE_COLUMN_MAP = {
@@ -89,7 +92,7 @@ BASE_COLUMN_MAP = {
     "jersey": "Jersey", "type": "Type", "name": "Rider Name",
     "leaders": "Leaders", "bonusWtp": "Bonus WTP", "teamName": "Team Name",
     "currentWtp": "Current WTP", "e2": "Energy", "stageTime": "Stage Time", 
-    "wtp": "WTP", "bonusSeconds": "Bonus (s)"
+    "wtp": "WTP", "bonusSeconds": "Bonus (s)", "stageTimes": "Stage Time", "tourTimes": "Total Time"
 }
 
 TOURS = {
@@ -156,10 +159,8 @@ if page == "Live Dashboard":
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
         st.session_state.is_loading = True
 
-    total_g = st.session_state.get("total_groups", 6)
-    total_s = st.session_state.get("total_stages", 10)
-    group_list = list(string.ascii_uppercase)[:total_g]
-    stage_list = [str(i) for i in range(1, total_s + 1)]
+    group_list = list(string.ascii_uppercase)[:st.session_state.get("total_groups", 6)]
+    stage_list = [str(i) for i in range(1, st.session_state.get("total_stages", 10) + 1)]
 
     sel_group = st.sidebar.selectbox("Group", group_list, index=group_list.index(st.session_state.current_group) if st.session_state.current_group in group_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
     sel_stage = st.sidebar.selectbox("Stage", stage_list, index=stage_list.index(st.session_state.current_stage) if st.session_state.current_stage in stage_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
@@ -169,10 +170,10 @@ if page == "Live Dashboard":
         with st.spinner("Fetching Data..."):
             try:
                 url = f"{TOURS[selected_tour]['url']}?code=26.{TOURS[selected_tour]['id']}.{sel_group}.{sel_stage}"
-                data = requests.get(url, timeout=15).json()
-                st.session_state.json_data = data
-                st.session_state.total_groups = data.get("totalGroups", 6)
-                st.session_state.total_stages = data.get("totalStages", 10)
+                res = requests.get(url, timeout=15).json()
+                st.session_state.json_data = res
+                st.session_state.total_groups = res.get("totalGroups", 6)
+                st.session_state.total_stages = res.get("totalStages", 10)
             except: st.error("Connection Error")
         st.session_state.is_loading = False
         st.rerun()
@@ -193,69 +194,51 @@ if page == "Live Dashboard":
                         df['jersey_raw'] = df['jersey']
                         df['jersey'] = df['jersey_raw'].apply(get_jersey_icon)
                     
-                    current_map = BASE_COLUMN_MAP.copy()
+                    cur_map = BASE_COLUMN_MAP.copy()
                     if k == "generalClassification":
-                        current_map["stagePts"] = "Stage GC Time"
-                        current_map["tourPts"] = "Tour Time"
+                        cur_map["stagePts"], cur_map["tourPts"] = "Stage GC Time", "Tour Time"
                     elif k in ["sprintClassification", "mountainClassification"]:
-                        current_map["stagePts"] = "Stage Pts"
-                        current_map["tourPts"] = "Total Pts"
+                        cur_map["stagePts"], cur_map["tourPts"] = "Stage Pts", "Total Pts"
                     elif k == "nextStageGrid":
-                        current_map["grid"] = "Next Stage Grid"
+                        cur_map["grid"] = "Next Stage Grid"
                     
-                    df = df.rename(columns=current_map)
+                    df = df.rename(columns=cur_map)
                     st.dataframe(df.style.apply(style_rows, axis=1), use_container_width=True, hide_index=True, column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None})
 
 elif page == "🏆 Hall of Fame":
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1><p>Final Tour Winners by Group</p></div>', unsafe_allow_html=True)
-    sel_tour_hof = st.selectbox("Choose Tour:", list(TOURS.keys()), disabled=st.session_state.is_loading)
+    sel_hof = st.selectbox("Choose Tour:", list(TOURS.keys()))
     
     @st.cache_data(ttl=600)
-    def get_final_winners(tour_name):
-        t_info = TOURS[tour_name]
+    def get_hof(t_name):
+        t = TOURS[t_name]
         try:
-            meta = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.A.1", timeout=15).json()
-            num_groups, last_stage = meta.get("totalGroups", 1), meta.get("totalStages", 1)
-            results = []
-            for lit in list(string.ascii_uppercase)[:num_groups]:
-                res = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.{lit}.{last_stage}", timeout=15).json()
-                def gt(k): return {"name": res[k][0]["name"], "team": res[k][0].get("teamName", res[k][0].get("team", ""))} if res.get(k) and len(res[k])>0 else {"name": "N/A", "team": "-"}
-                results.append({"group": lit, "yellow": gt("generalClassification"), "green": gt("sprintClassification"), "polkadot": gt("mountainClassification"), "white": gt("teamTimeClassification")})
-            return results
+            m = requests.get(f"{t['url']}?code=26.{t['id']}.A.1", timeout=15).json()
+            res = []
+            for lit in list(string.ascii_uppercase)[:m.get("totalGroups", 1)]:
+                r = requests.get(f"{t['url']}?code=26.{t['id']}.{lit}.{m.get('totalStages', 1)}", timeout=15).json()
+                def gt(k): return {"name": r[k][0]["name"], "team": r[k][0].get("teamName", r[k][0].get("team", ""))} if r.get(k) and len(r[k])>0 else {"name": "N/A", "team": "-"}
+                res.append({"group": lit, "yellow": gt("generalClassification"), "green": gt("sprintClassification"), "polkadot": gt("mountainClassification"), "white": gt("teamTimeClassification")})
+            return res
         except: return []
 
-    final_winners = get_final_winners(sel_tour_hof)
-    if final_winners:
-        st.markdown(f"""
-            <div class="hof-header-grid">
-                <div class="hof-header-item">Group</div>
-                <div class="hof-header-item"><img src="{get_jersey_icon('yellow')}" width="40"><br>GC</div>
-                <div class="hof-header-item"><img src="{get_jersey_icon('green')}" width="40"><br>Points</div>
-                <div class="hof-header-item"><img src="{get_jersey_icon('polkadot')}" width="40"><br>KOM</div>
-                <div class="hof-header-item"><img src="{get_jersey_icon('white')}" width="40"><br>Team</div>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        labels = [("yellow", "GC"), ("green", "Points"), ("polkadot", "KOM"), ("white", "Team")]
-        for w in final_winners:
-            row_html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
-            row_html += '<div class="mobile-stack">'
-            for key, label in labels:
-                row_html += f"""
-                <div class="jersey-box">
-                    <span class="mobile-label">{label}</span>
-                    <span class="rider-name">{w[key]['name']}</span>
-                    <span class="team-name">{w[key]['team']}</span>
+    winners = get_hof(sel_hof)
+    if winners:
+        st.markdown('<div class="hof-header-grid"><div class="hof-header-item">Group</div><div class="hof-header-item">GC Leader</div><div class="hof-header-item">Points</div><div class="hof-header-item">KOM</div><div class="hof-header-item">Best Team</div></div>', unsafe_allow_html=True)
+        for w in winners:
+            html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
+            for k, img in [("yellow", "yellow"), ("green", "green"), ("polkadot", "polkadot"), ("white", "white")]:
+                html += f"""<div class="jersey-box">
+                    <img src="{get_jersey_icon(img)}" class="jersey-icon-mini">
+                    <div><span class="rider-name">{w[k]['name']}</span><span class="team-name">{w[k]['team']}</span></div>
                 </div>"""
-            row_html += "</div></div>"
-            st.markdown(row_html, unsafe_allow_html=True)
+            st.markdown(html + "</div>", unsafe_allow_html=True)
 
 else:
-    st.markdown('<div class="main-header"><h1>📊 Master Standings</h1><p>World Tour Global Rankings</p></div>', unsafe_allow_html=True)
-    if st.button("🔄 Force Refresh Master"): st.cache_data.clear()
-    
+    st.markdown('<div class="main-header"><h1>📊 Master Standings</h1></div>', unsafe_allow_html=True)
+    if st.button("🔄 Refresh Master"): st.cache_data.clear()
     m_data = requests.get(MASTER_URL).json()
-    tr, tt = st.tabs(["👤 Overall Riders", "👥 Overall Teams"])
+    tr, tt = st.tabs(["👤 Riders", "👥 Teams"])
     with tr:
         df_r = pd.DataFrame(m_data.get("ridersMaster", []))
         if not df_r.empty:
