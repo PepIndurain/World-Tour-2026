@@ -6,11 +6,16 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & READABILITY) ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & RESPONSIVE HOF) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-    html, body, p, div, label { font-family: 'Inter', sans-serif !important; color: #000000 !important; }
+    
+    /* Global text */
+    html, body, p, div, label { 
+        font-family: 'Inter', sans-serif !important; 
+        color: #000000 !important; 
+    }
     
     /* Header Rosso */
     .main-header {
@@ -20,18 +25,28 @@ st.markdown("""
     }
     .main-header h1 { color: #FFFFFF !important; font-weight: 800 !important; font-size: 2.8rem !important; margin: 0 !important; text-transform: uppercase; }
 
-    /* Stile Tabelle: Nero Puro e Grassetto per PC */
+    /* Cursore a manina */
+    div[data-baseweb="select"], div[data-baseweb="select"] > div, li[role="option"], 
+    [data-testid="stSidebar"] label, [data-testid="stWidgetLabel"], button[data-baseweb="tab"] {
+        cursor: pointer !important;
+    }
+
+    /* Restore Streamlit Icons */
+    [data-testid="stIcon"] { font-family: inherit !important; }
+
+    /* Stile Tabelle */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
 
-    /* Hall of Fame: Allineamento Grid */
+    /* --- HALL OF FAME RESPONSIVE GRID --- */
     .hof-header-grid {
         display: grid; grid-template-columns: 100px repeat(4, 1fr);
         text-align: center; margin-bottom: 15px; background: #f8f9fa;
         padding: 15px 10px; border-radius: 10px; align-items: end;
     }
     .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.9rem; }
+    
     .hof-row {
         display: grid; grid-template-columns: 100px repeat(4, 1fr); gap: 15px;
         background: #ffffff; border: 2px solid #000000; border-radius: 12px;
@@ -41,6 +56,28 @@ st.markdown("""
     .jersey-box { text-align: left; padding-left: 10px; }
     .rider-name { font-size: 1.2rem; font-weight: 700; color: #000000; display: block; line-height: 1.2; }
     .team-name { font-size: 0.85rem; font-weight: 600; color: #555; text-transform: uppercase; }
+    
+    /* Mobile labels (nascoste su PC) */
+    .mobile-label { display: none; font-size: 0.7rem; font-weight: 800; color: #C1272D; text-transform: uppercase; margin-bottom: 2px; }
+
+    /* --- MEDIA QUERY PER TELEFONI --- */
+    @media (max-width: 768px) {
+        .hof-header-grid { display: none; } /* Nascondi intestazione su mobile */
+        .hof-row {
+            grid-template-columns: 60px 1fr !important; /* Solo 2 colonne: Gruppo e Lista */
+            gap: 10px !important;
+            padding: 10px !important;
+        }
+        .group-label { font-size: 1.8rem !important; padding-right: 10px !important; }
+        .jersey-box { 
+            padding: 8px 0 !important; 
+            border-bottom: 1px solid #eee; 
+            padding-left: 5px !important;
+        }
+        .jersey-box:last-child { border-bottom: none; }
+        .mobile-label { display: block !important; } /* Mostra etichette maglia */
+        .rider-name { font-size: 1.1rem !important; }
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -84,12 +121,10 @@ def get_leader_emojis(val):
 
 def style_rows(row):
     text_style = 'color: #000000; font-weight: 700;'
-    # Cerca il colore della maglia per applicare lo sfondo riga
     j = ""
     if 'jersey_raw' in row: j = str(row['jersey_raw'])
     elif 'Jersey' in row: j = str(row['Jersey'])
     elif 'jersey' in row: j = str(row['jersey'])
-    
     j = j.lower()
     bg = ""
     if 'yellow' in j: bg = "#FFF2CC"
@@ -98,32 +133,47 @@ def style_rows(row):
     elif 'white' in j: bg = "#F2F2F2"
     return [f'background-color: {bg}; {text_style}' if bg else text_style] * len(row)
 
-# --- 4. NAVIGATION ---
+def trigger_loading():
+    st.session_state.is_loading = True
+
+# --- 4. SESSION STATE ---
+if "is_loading" not in st.session_state: st.session_state.is_loading = False
+if "current_group" not in st.session_state: st.session_state.current_group = "A"
+if "current_stage" not in st.session_state: st.session_state.current_stage = "1"
+if "prev_tour" not in st.session_state: st.session_state.prev_tour = None
+if "json_data" not in st.session_state: st.session_state.json_data = {}
+
+# --- 5. NAVIGATION ---
 st.sidebar.title("🏁 World Tour Menu")
-page = st.sidebar.radio("Navigate to:", ["Live Dashboard", "🏆 Hall of Fame", "📊 Master Standings"])
+page = st.sidebar.radio("Navigate to:", ["Live Dashboard", "🏆 Hall of Fame", "📊 Master Standings"], disabled=st.session_state.is_loading)
 
 if page == "Live Dashboard":
     st.sidebar.header("Race Settings")
-    selected_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()))
-    if "prev_tour" not in st.session_state or st.session_state.prev_tour != selected_tour:
+    selected_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()), disabled=st.session_state.is_loading, on_change=trigger_loading)
+    
+    if st.session_state.prev_tour != selected_tour:
         st.session_state.prev_tour = selected_tour
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
         st.session_state.is_loading = True
-    
+
     total_g = st.session_state.get("total_groups", 6)
     total_s = st.session_state.get("total_stages", 10)
-    
-    sel_group = st.sidebar.selectbox("Group", list(string.ascii_uppercase)[:total_g], index=list(string.ascii_uppercase).index(st.session_state.current_group) if st.session_state.current_group in list(string.ascii_uppercase) else 0)
-    sel_stage = st.sidebar.selectbox("Stage", [str(i) for i in range(1, total_s + 1)], index=int(st.session_state.current_stage)-1 if int(st.session_state.current_stage) <= total_s else 0)
+    group_list = list(string.ascii_uppercase)[:total_g]
+    stage_list = [str(i) for i in range(1, total_s + 1)]
 
-    if st.session_state.is_loading or sel_group != st.session_state.current_group or sel_stage != st.session_state.current_stage:
+    sel_group = st.sidebar.selectbox("Group", group_list, index=group_list.index(st.session_state.current_group) if st.session_state.current_group in group_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
+    sel_stage = st.sidebar.selectbox("Stage", stage_list, index=stage_list.index(st.session_state.current_stage) if st.session_state.current_stage in stage_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
+
+    if st.session_state.is_loading:
         st.session_state.current_group, st.session_state.current_stage = sel_group, sel_stage
         with st.spinner("Fetching Data..."):
-            url = f"{TOURS[selected_tour]['url']}?code=26.{TOURS[selected_tour]['id']}.{sel_group}.{sel_stage}"
-            data = requests.get(url).json()
-            st.session_state.json_data = data
-            st.session_state.total_groups = data.get("totalGroups", 6)
-            st.session_state.total_stages = data.get("totalStages", 10)
+            try:
+                url = f"{TOURS[selected_tour]['url']}?code=26.{TOURS[selected_tour]['id']}.{sel_group}.{sel_stage}"
+                data = requests.get(url, timeout=15).json()
+                st.session_state.json_data = data
+                st.session_state.total_groups = data.get("totalGroups", 6)
+                st.session_state.total_stages = data.get("totalStages", 10)
+            except: st.error("Connection Error")
         st.session_state.is_loading = False
         st.rerun()
 
@@ -131,8 +181,6 @@ if page == "Live Dashboard":
     d = st.session_state.get("json_data", {})
     if d:
         st.success(f"📍 {selected_tour} | Group {st.session_state.current_group} | Stage {st.session_state.current_stage}")
-        
-        # DEFINIZIONE TAB
         tabs = st.tabs(["🏁 Stage", "🟡 GC", "🟢 Points", "🔴 KOM", "🔵 TP", "👥 Team GC", "🏆 Team TP", "🚀 Next Stage Grid"])
         keys = ["stageResults", "generalClassification", "sprintClassification", "mountainClassification", "tpClassification", "teamTimeClassification", "teamTPClassification", "nextStageGrid"]
         
@@ -145,7 +193,6 @@ if page == "Live Dashboard":
                         df['jersey_raw'] = df['jersey']
                         df['jersey'] = df['jersey_raw'].apply(get_jersey_icon)
                     
-                    # LOGICA MAPPATURA DINAMICA COLONNE
                     current_map = BASE_COLUMN_MAP.copy()
                     if k == "generalClassification":
                         current_map["stagePts"] = "Stage GC Time"
@@ -161,20 +208,19 @@ if page == "Live Dashboard":
 
 elif page == "🏆 Hall of Fame":
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1><p>Final Tour Winners by Group</p></div>', unsafe_allow_html=True)
-    sel_tour_hof = st.selectbox("Choose Tour to display FINAL Champions:", list(TOURS.keys()))
+    sel_tour_hof = st.selectbox("Choose Tour:", list(TOURS.keys()), disabled=st.session_state.is_loading)
     
     @st.cache_data(ttl=600)
     def get_final_winners(tour_name):
         t_info = TOURS[tour_name]
         try:
-            meta = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.A.1").json()
-            num_groups = meta.get("totalGroups", 1)
-            last_stage = meta.get("totalStages", 1)
+            meta = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.A.1", timeout=15).json()
+            num_groups, last_stage = meta.get("totalGroups", 1), meta.get("totalStages", 1)
             results = []
             for lit in list(string.ascii_uppercase)[:num_groups]:
-                res = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.{lit}.{last_stage}").json()
-                get_t = lambda k: {"name": res[k][0]["name"], "team": res[k][0].get("teamName", res[k][0].get("team", ""))} if res.get(k) else {"name": "No Winner", "team": "-"}
-                results.append({"group": lit, "yellow": get_t("generalClassification"), "green": get_t("sprintClassification"), "polkadot": get_t("mountainClassification"), "white": get_t("teamTimeClassification")})
+                res = requests.get(f"{t_info['url']}?code=26.{t_info['id']}.{lit}.{last_stage}", timeout=15).json()
+                def gt(k): return {"name": res[k][0]["name"], "team": res[k][0].get("teamName", res[k][0].get("team", ""))} if res.get(k) and len(res[k])>0 else {"name": "N/A", "team": "-"}
+                results.append({"group": lit, "yellow": gt("generalClassification"), "green": gt("sprintClassification"), "polkadot": gt("mountainClassification"), "white": gt("teamTimeClassification")})
             return results
         except: return []
 
@@ -189,36 +235,34 @@ elif page == "🏆 Hall of Fame":
                 <div class="hof-header-item"><img src="{get_jersey_icon('white')}" width="40"><br>Team</div>
             </div>
         """, unsafe_allow_html=True)
+        
+        labels = [("yellow", "GC"), ("green", "Points"), ("polkadot", "KOM"), ("white", "Team")]
         for w in final_winners:
             row_html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
-            for col in ["yellow", "green", "polkadot", "white"]:
-                row_html += f'<div class="jersey-box"><span class="rider-name">{w[col]["name"]}</span><span class="team-name">{w[col]["team"]}</span></div>'
-            st.markdown(row_html + "</div>", unsafe_allow_html=True)
+            row_html += '<div class="mobile-stack">'
+            for key, label in labels:
+                row_html += f"""
+                <div class="jersey-box">
+                    <span class="mobile-label">{label}</span>
+                    <span class="rider-name">{w[key]['name']}</span>
+                    <span class="team-name">{w[key]['team']}</span>
+                </div>"""
+            row_html += "</div></div>"
+            st.markdown(row_html, unsafe_allow_html=True)
 
 else:
-    # --- 📊 MASTER STANDINGS ---
     st.markdown('<div class="main-header"><h1>📊 Master Standings</h1><p>World Tour Global Rankings</p></div>', unsafe_allow_html=True)
-    if st.button("🔄 Force Refresh Standings"):
-        st.cache_data.clear()
-        st.rerun()
-
-    @st.cache_data(ttl=600)
-    def fetch_master():
-        try:
-            return requests.get(MASTER_URL, timeout=20).json()
-        except: return {"error": "Connection error."}
-
-    master_data = fetch_master()
-    if "error" in master_data: st.error(master_data["error"])
-    else:
-        tr, tt = st.tabs(["👤 Overall Riders Standings", "👥 Overall Teams Standings"])
-        with tr:
-            df_r = pd.DataFrame(master_data.get("ridersMaster", []))
-            if not df_r.empty:
-                df_r['WTP'] = pd.to_numeric(df_r['WTP'], errors='coerce').round(2)
-                st.dataframe(df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]], use_container_width=True, hide_index=True)
-        with tt:
-            df_t = pd.DataFrame(master_data.get("teamsMaster", []))
-            if not df_t.empty:
-                df_t['WTP'] = pd.to_numeric(df_t['WTP'], errors='coerce').round(2)
-                st.dataframe(df_t[["Rank", "Player", "Team Name", "WTP"]], use_container_width=True, hide_index=True)
+    if st.button("🔄 Force Refresh Master"): st.cache_data.clear()
+    
+    m_data = requests.get(MASTER_URL).json()
+    tr, tt = st.tabs(["👤 Overall Riders", "👥 Overall Teams"])
+    with tr:
+        df_r = pd.DataFrame(m_data.get("ridersMaster", []))
+        if not df_r.empty:
+            df_r['WTP'] = pd.to_numeric(df_r['WTP'], errors='coerce').round(2)
+            st.dataframe(df_r[["Rank", "Player", "Type", "Rider Name", "WTP"]], use_container_width=True, hide_index=True)
+    with tt:
+        df_t = pd.DataFrame(m_data.get("teamsMaster", []))
+        if not df_t.empty:
+            df_t['WTP'] = pd.to_numeric(df_t['WTP'], errors='coerce').round(2)
+            st.dataframe(df_t[["Rank", "Player", "Team Name", "WTP"]], use_container_width=True, hide_index=True)
