@@ -6,7 +6,7 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & AUTO-SCALING HOF) ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & RESPONSIVE DESIGN) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -17,13 +17,19 @@ st.markdown("""
         color: #000000 !important; 
     }
     
-    /* Header Rosso */
+    /* Header Rosso (PC) */
     .main-header {
         background: linear-gradient(95deg, #FF4B4B 0%, #C1272D 100%);
         padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 25px;
         box-shadow: 0 10px 20px rgba(193, 39, 45, 0.2);
     }
-    .main-header h1 { color: #FFFFFF !important; font-weight: 800 !important; font-size: 2.8rem !important; margin: 0 !important; text-transform: uppercase; }
+    .main-header h1 { 
+        color: #FFFFFF !important; 
+        font-weight: 800 !important; 
+        font-size: 2.8rem !important; 
+        margin: 0 !important; 
+        text-transform: uppercase; 
+    }
 
     /* Cursore a manina */
     div[data-baseweb="select"], div[data-baseweb="select"] > div, li[role="option"], 
@@ -36,15 +42,10 @@ st.markdown("""
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
 
-    /* --- HALL OF FAME: FULLY RESPONSIVE NO-SCROLL --- */
-    .hof-container {
-        width: 100%;
-        margin-top: 10px;
-    }
-    
+    /* --- HALL OF FAME: FULLY RESPONSIVE --- */
     .hof-header-grid {
         display: grid; 
-        grid-template-columns: 50px repeat(4, 1fr); /* Colonna gruppo stretta */
+        grid-template-columns: 50px repeat(4, 1fr);
         text-align: center; 
         background: #f1f3f5;
         padding: 10px 5px; 
@@ -63,31 +64,34 @@ st.markdown("""
         align-items: center;
         border-bottom: 1px solid #dee2e6;
     }
-
     .group-label { font-size: 1.8rem; font-weight: 800; color: #C1272D; text-align: center; }
-    
-    .jersey-box { 
-        text-align: left; 
-        padding: 0 8px;
-        border-left: 1px solid #f0f0f0;
-        word-wrap: break-word; /* Forza il testo ad andare a capo */
-        overflow-wrap: break-word;
-    }
+    .jersey-box { text-align: left; padding: 0 8px; border-left: 1px solid #f0f0f0; word-wrap: break-word; overflow-wrap: break-word; }
     .rider-name { font-size: 1rem; font-weight: 700; color: #000000; display: block; line-height: 1.1; }
     .team-name { font-size: 0.75rem; font-weight: 600; color: #666; text-transform: uppercase; }
 
-    /* --- MEDIA QUERY PER SMARTPHONE: RIDUZIONE CARATTERI --- */
+    /* --- MEDIA QUERY PER SMARTPHONE --- */
     @media (max-width: 768px) {
+        /* Riduzione Header Rosso su Mobile */
+        .main-header {
+            padding: 12px 10px !important; 
+            margin-bottom: 15px !important;
+            border-radius: 10px !important;
+        }
+        .main-header h1 {
+            font-size: 1.4rem !important; /* Molto più piccolo */
+        }
+        
+        /* Riduzione Caratteri Hall of Fame per far stare tutto */
         .hof-header-item { font-size: 0.6rem !important; }
-        .header-jersey { width: 25px !important; }
-        .group-label { font-size: 1.3rem !important; }
-        .rider-name { font-size: 0.75rem !important; }
-        .team-name { font-size: 0.6rem !important; }
-        .jersey-box { padding: 0 4px !important; }
-        .hof-row { padding: 8px 2px !important; }
+        .header-jersey { width: 22px !important; }
+        .group-label { font-size: 1.2rem !important; }
+        .rider-name { font-size: 0.7rem !important; }
+        .team-name { font-size: 0.55rem !important; }
+        .jersey-box { padding: 0 3px !important; }
+        .hof-row { padding: 6px 2px !important; }
     }
 
-    /* Fix Icons */
+    /* Fix Icone Streamlit */
     [data-testid="stIcon"] { font-family: inherit !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -157,7 +161,7 @@ if page == "Live Dashboard":
     st.sidebar.header("Race Settings")
     selected_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()), disabled=st.session_state.is_loading, on_change=trigger_loading)
     
-    if "prev_tour" not in st.session_state or st.session_state.prev_tour != selected_tour:
+    if st.session_state.get("prev_tour") != selected_tour:
         st.session_state.prev_tour = selected_tour
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
         st.session_state.is_loading = True
@@ -175,7 +179,8 @@ if page == "Live Dashboard":
                 url = f"{TOURS[selected_tour]['url']}?code=26.{TOURS[selected_tour]['id']}.{sel_group}.{sel_stage}"
                 res = requests.get(url, timeout=15).json()
                 st.session_state.json_data = res
-                st.session_state.total_groups, st.session_state.total_stages = res.get("totalGroups", 6), res.get("totalStages", 10)
+                st.session_state.total_groups = res.get("totalGroups", 6)
+                st.session_state.total_stages = res.get("totalStages", 10)
             except: st.error("Connection Error")
         st.session_state.is_loading = False
         st.rerun()
@@ -202,7 +207,7 @@ if page == "Live Dashboard":
                     st.dataframe(df.style.apply(style_rows, axis=1), use_container_width=True, hide_index=True, column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None})
 
 elif page == "🏆 Hall of Fame":
-    st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1><p>Final Tour Winners by Group</p></div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1></div>', unsafe_allow_html=True)
     sel_hof = st.selectbox("Choose Tour:", list(TOURS.keys()))
     
     @st.cache_data(ttl=600)
@@ -220,7 +225,6 @@ elif page == "🏆 Hall of Fame":
 
     winners = get_hof(sel_hof)
     if winners:
-        st.markdown('<div class="hof-container">', unsafe_allow_html=True)
         st.markdown(f"""
             <div class="hof-header-grid">
                 <div class="hof-header-item">Group</div>
@@ -233,14 +237,11 @@ elif page == "🏆 Hall of Fame":
         for w in winners:
             html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
             for k in ["yellow", "green", "polkadot", "white"]:
-                html += f"""<div class="jersey-box">
-                    <span class="rider-name">{w[k]['name']}</span>
-                    <span class="team-name">{w[k]['team']}</span>
-                </div>"""
+                html += f'<div class="jersey-box"><span class="rider-name">{w[k]["name"]}</span><span class="team-name">{w[k]["team"]}</span></div>'
             st.markdown(html + "</div>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
 else:
+    # --- 📊 OVERALL STANDINGS ---
     st.markdown('<div class="main-header"><h1>📊 Overall Standings</h1></div>', unsafe_allow_html=True)
     if st.button("🔄 Refresh Master"): st.cache_data.clear()
     m_data = requests.get(MASTER_URL).json()
