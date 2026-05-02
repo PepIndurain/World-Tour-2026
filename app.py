@@ -2,67 +2,96 @@ import streamlit as st
 import requests
 import pandas as pd
 import string
-from concurrent.futures import ThreadPoolExecutor
-import time
 
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & RESPONSIVE) ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & RESPONSIVE DESIGN) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     
+    /* Global text */
     html, body, p, div, label { 
         font-family: 'Inter', sans-serif !important; 
         color: #000000 !important; 
     }
     
+    /* Header Rosso (PC) */
     .main-header {
         background: linear-gradient(95deg, #FF4B4B 0%, #C1272D 100%);
         padding: 30px; border-radius: 15px; text-align: center; margin-bottom: 25px;
         box-shadow: 0 10px 20px rgba(193, 39, 45, 0.2);
     }
-    .main-header h1 { color: #FFFFFF !important; font-weight: 800 !important; font-size: 2.8rem !important; margin: 0 !important; text-transform: uppercase; }
+    .main-header h1 { 
+        color: #FFFFFF !important; 
+        font-weight: 800 !important; 
+        font-size: 2.8rem !important; 
+        margin: 0 !important; 
+        text-transform: uppercase; 
+    }
 
+    /* Cursore a manina */
     div[data-baseweb="select"], div[data-baseweb="select"] > div, li[role="option"], 
     [data-testid="stSidebar"] label, [data-testid="stWidgetLabel"], button[data-baseweb="tab"] {
         cursor: pointer !important;
     }
 
+    /* Stile Tabelle Live & Master */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
 
-    /* Hall of Fame: Fully Responsive */
+    /* --- HALL OF FAME: FULLY RESPONSIVE --- */
     .hof-header-grid {
-        display: grid; grid-template-columns: 50px repeat(4, 1fr);
-        text-align: center; background: #f1f3f5; padding: 10px 5px; 
-        border-radius: 10px 10px 0 0; align-items: end; border-bottom: 2px solid #000000;
+        display: grid; 
+        grid-template-columns: 50px repeat(4, 1fr);
+        text-align: center; 
+        background: #f1f3f5;
+        padding: 10px 5px; 
+        border-radius: 10px 10px 0 0;
+        align-items: end;
+        border-bottom: 2px solid #000000;
     }
     .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.8rem; color: #000000; }
     .header-jersey { width: 35px; margin-bottom: 5px; }
 
     .hof-row {
-        display: grid; grid-template-columns: 50px repeat(4, 1fr); 
-        background: #ffffff; padding: 12px 5px; align-items: center; border-bottom: 1px solid #dee2e6;
+        display: grid; 
+        grid-template-columns: 50px repeat(4, 1fr); 
+        background: #ffffff;
+        padding: 12px 5px;
+        align-items: center;
+        border-bottom: 1px solid #dee2e6;
     }
     .group-label { font-size: 1.8rem; font-weight: 800; color: #C1272D; text-align: center; }
     .jersey-box { text-align: left; padding: 0 8px; border-left: 1px solid #f0f0f0; word-wrap: break-word; overflow-wrap: break-word; }
     .rider-name { font-size: 1rem; font-weight: 700; color: #000000; display: block; line-height: 1.1; }
     .team-name { font-size: 0.75rem; font-weight: 600; color: #666; text-transform: uppercase; }
 
+    /* --- MEDIA QUERY PER SMARTPHONE --- */
     @media (max-width: 768px) {
-        .main-header { padding: 12px 10px !important; margin-bottom: 15px !important; border-radius: 10px !important; }
-        .main-header h1 { font-size: 1.4rem !important; }
+        /* Riduzione Header Rosso su Mobile */
+        .main-header {
+            padding: 12px 10px !important; 
+            margin-bottom: 15px !important;
+            border-radius: 10px !important;
+        }
+        .main-header h1 {
+            font-size: 1.4rem !important; /* Molto più piccolo */
+        }
+        
+        /* Riduzione Caratteri Hall of Fame per far stare tutto */
         .hof-header-item { font-size: 0.6rem !important; }
         .header-jersey { width: 22px !important; }
         .group-label { font-size: 1.2rem !important; }
-        .rider-name { font-size: 0.75rem !important; }
+        .rider-name { font-size: 0.7rem !important; }
         .team-name { font-size: 0.55rem !important; }
         .jersey-box { padding: 0 3px !important; }
         .hof-row { padding: 6px 2px !important; }
     }
+
+    /* Fix Icone Streamlit */
     [data-testid="stIcon"] { font-family: inherit !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -131,6 +160,7 @@ page = st.sidebar.radio("Navigate to:", ["Live Dashboard", "🏆 Hall of Fame", 
 if page == "Live Dashboard":
     st.sidebar.header("Race Settings")
     selected_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()), disabled=st.session_state.is_loading, on_change=trigger_loading)
+    
     if st.session_state.get("prev_tour") != selected_tour:
         st.session_state.prev_tour = selected_tour
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
@@ -180,33 +210,20 @@ elif page == "🏆 Hall of Fame":
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1></div>', unsafe_allow_html=True)
     sel_hof = st.selectbox("Choose Tour:", list(TOURS.keys()))
     
-    # FUNZIONE ROBUSTA CON RETRY
-    def fetch_group_resilient(args):
-        url, tid, lit, stage = args
-        for attempt in range(3): # Prova fino a 3 volte
-            try:
-                r = requests.get(f"{url}?code=26.{tid}.{lit}.{stage}", timeout=15).json()
-                def gt(k): return {"name": r[k][0]["name"], "team": r[k][0].get("teamName", r[k][0].get("team", ""))} if r.get(k) and len(r[k])>0 else {"name": "N/A", "team": "-"}
-                return {"group": lit, "yellow": gt("generalClassification"), "green": gt("sprintClassification"), "polkadot": gt("mountainClassification"), "white": gt("teamTPClassification")}
-            except:
-                time.sleep(1) # Aspetta un secondo prima di riprovare
-                continue
-        return None
-
     @st.cache_data(ttl=600)
-    def get_hof_stable(t_name):
+    def get_hof(t_name):
         t = TOURS[t_name]
         try:
             m = requests.get(f"{t['url']}?code=26.{t['id']}.A.1", timeout=15).json()
-            letters = list(string.ascii_uppercase)[:m.get("totalGroups", 1)]
-            last_s = m.get("totalStages", 1)
-            tasks = [(t['url'], t['id'], lit, last_s) for lit in letters]
-            with ThreadPoolExecutor(max_workers=2) as executor: # Solo 2 alla volta per sicurezza
-                results = list(executor.map(fetch_group_resilient, tasks))
-            return sorted([r for r in results if r], key=lambda x: x['group'])
+            res = []
+            for lit in list(string.ascii_uppercase)[:m.get("totalGroups", 1)]:
+                r = requests.get(f"{t['url']}?code=26.{t['id']}.{lit}.{m.get('totalStages', 1)}", timeout=15).json()
+                def gt(k): return {"name": r[k][0]["name"], "team": r[k][0].get("teamName", r[k][0].get("team", ""))} if r.get(k) and len(r[k])>0 else {"name": "N/A", "team": "-"}
+                res.append({"group": lit, "yellow": gt("generalClassification"), "green": gt("sprintClassification"), "polkadot": gt("mountainClassification"), "white": gt("teamTimeClassification")})
+            return res
         except: return []
 
-    winners = get_hof_stable(sel_hof)
+    winners = get_hof(sel_hof)
     if winners:
         st.markdown(f"""
             <div class="hof-header-grid">
@@ -220,13 +237,11 @@ elif page == "🏆 Hall of Fame":
         for w in winners:
             html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
             for k in ["yellow", "green", "polkadot", "white"]:
-                html += f"""<div class="jersey-box">
-                    <span class="rider-name">{w[k]['name']}</span>
-                    <span class="team-name">{w[k]['team']}</span>
-                </div>"""
+                html += f'<div class="jersey-box"><span class="rider-name">{w[k]["name"]}</span><span class="team-name">{w[k]["team"]}</span></div>'
             st.markdown(html + "</div>", unsafe_allow_html=True)
 
 else:
+    # --- 📊 OVERALL STANDINGS ---
     st.markdown('<div class="main-header"><h1>📊 Overall Standings</h1></div>', unsafe_allow_html=True)
     if st.button("🔄 Refresh Master"): st.cache_data.clear()
     m_data = requests.get(MASTER_URL).json()
