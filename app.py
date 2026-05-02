@@ -6,7 +6,7 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & TRUE RESPONSIVE GRID) ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & HORIZONTAL SCROLL HOF) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -25,62 +25,50 @@ st.markdown("""
     }
     .main-header h1 { color: #FFFFFF !important; font-weight: 800 !important; font-size: 2.8rem !important; margin: 0 !important; text-transform: uppercase; }
 
-    /* Cursore a manina per menu e interazioni */
+    /* Cursore a manina */
     div[data-baseweb="select"], div[data-baseweb="select"] > div, li[role="option"], 
     [data-testid="stSidebar"] label, [data-testid="stWidgetLabel"], button[data-baseweb="tab"] {
         cursor: pointer !important;
     }
-
-    /* Restore Streamlit Icons */
-    [data-testid="stIcon"] { font-family: inherit !important; }
 
     /* Stile Tabelle Live & Master */
     [data-testid="stDataFrame"] td, [data-testid="stDataFrame"] th {
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
 
-    /* --- HALL OF FAME: GRID LAYOUT (PC) --- */
-    .hof-container { margin-top: 20px; }
+    /* --- HALL OF FAME: SCROLLABILE SU MOBILE --- */
+    .hof-scroll-container {
+        overflow-x: auto; /* Permette lo scroll orizzontale */
+        padding-bottom: 20px;
+    }
+    .hof-inner-box {
+        min-width: 900px; /* Impedisce il rimescolamento su mobile */
+    }
     
     .hof-header-grid {
         display: grid; 
         grid-template-columns: 100px repeat(4, 1fr);
         text-align: center; margin-bottom: 10px; background: #f8f9fa;
-        padding: 10px; border-radius: 10px; align-items: center;
+        padding: 15px 10px; border-radius: 10px; align-items: end;
     }
-    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.85rem; color: #666; }
-    
+    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.85rem; color: #000000; }
+    .header-jersey { width: 40px; margin-bottom: 5px; }
+
     .hof-row {
         display: grid; 
         grid-template-columns: 100px repeat(4, 1fr); 
         gap: 10px; background: #ffffff; border: 2px solid #000000;
-        border-radius: 12px; margin-bottom: 15px; padding: 15px 10px;
+        border-radius: 12px; margin-bottom: 12px; padding: 15px 10px;
         align-items: center; box-shadow: 4px 4px 0px #eee;
     }
     .group-label { font-size: 2.8rem; font-weight: 800; color: #C1272D; text-align: center; border-right: 2px solid #eee; }
     
-    .jersey-box { display: flex; align-items: center; text-align: left; padding-left: 10px; }
-    .jersey-icon-mini { width: 45px; margin-right: 10px; flex-shrink: 0; }
+    .jersey-box { text-align: left; padding-left: 20px; }
     .rider-name { font-size: 1.15rem; font-weight: 700; color: #000000; display: block; line-height: 1.1; }
-    .team-name { font-size: 0.8rem; font-weight: 600; color: #666; text-transform: uppercase; }
+    .team-name { font-size: 0.85rem; font-weight: 600; color: #666; text-transform: uppercase; }
 
-    /* --- MEDIA QUERY PER TELEFONI --- */
-    @media (max-width: 768px) {
-        .hof-header-grid { display: none; } /* Nascondi intestazione su mobile */
-        .hof-row {
-            grid-template-columns: 70px 1fr !important; /* Solo lettera + lista */
-            padding: 10px !important;
-        }
-        .group-label { font-size: 2rem !important; }
-        .jersey-box { 
-            margin-bottom: 12px; 
-            border-bottom: 1px solid #f0f0f0; 
-            padding-bottom: 8px; 
-        }
-        .jersey-box:last-child { border-bottom: none; margin-bottom: 0; }
-        .jersey-icon-mini { width: 35px !important; }
-        .rider-name { font-size: 1rem !important; }
-    }
+    /* Fix Icons */
+    [data-testid="stIcon"] { font-family: inherit !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -124,11 +112,7 @@ def get_leader_emojis(val):
 
 def style_rows(row):
     text_style = 'color: #000000; font-weight: 700;'
-    j = ""
-    if 'jersey_raw' in row: j = str(row['jersey_raw'])
-    elif 'Jersey' in row: j = str(row['Jersey'])
-    elif 'jersey' in row: j = str(row['jersey'])
-    j = j.lower()
+    j = str(row['jersey_raw']).lower() if 'jersey_raw' in row else (str(row.get('Jersey', '')).lower() if 'Jersey' in row else '')
     bg = ""
     if 'yellow' in j: bg = "#FFF2CC"
     elif 'green' in j: bg = "#E2F0D9"
@@ -143,7 +127,6 @@ def trigger_loading():
 if "is_loading" not in st.session_state: st.session_state.is_loading = False
 if "current_group" not in st.session_state: st.session_state.current_group = "A"
 if "current_stage" not in st.session_state: st.session_state.current_stage = "1"
-if "prev_tour" not in st.session_state: st.session_state.prev_tour = None
 if "json_data" not in st.session_state: st.session_state.json_data = {}
 
 # --- 5. NAVIGATION ---
@@ -154,16 +137,18 @@ if page == "Live Dashboard":
     st.sidebar.header("Race Settings")
     selected_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()), disabled=st.session_state.is_loading, on_change=trigger_loading)
     
-    if st.session_state.prev_tour != selected_tour:
+    if "prev_tour" not in st.session_state or st.session_state.prev_tour != selected_tour:
         st.session_state.prev_tour = selected_tour
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
         st.session_state.is_loading = True
 
-    group_list = list(string.ascii_uppercase)[:st.session_state.get("total_groups", 6)]
-    stage_list = [str(i) for i in range(1, st.session_state.get("total_stages", 10) + 1)]
+    total_g = st.session_state.get("total_groups", 6)
+    total_s = st.session_state.get("total_stages", 10)
+    g_list = list(string.ascii_uppercase)[:total_g]
+    s_list = [str(i) for i in range(1, total_s + 1)]
 
-    sel_group = st.sidebar.selectbox("Group", group_list, index=group_list.index(st.session_state.current_group) if st.session_state.current_group in group_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
-    sel_stage = st.sidebar.selectbox("Stage", stage_list, index=stage_list.index(st.session_state.current_stage) if st.session_state.current_stage in stage_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
+    sel_group = st.sidebar.selectbox("Group", g_list, index=g_list.index(st.session_state.current_group) if st.session_state.current_group in g_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
+    sel_stage = st.sidebar.selectbox("Stage", s_list, index=s_list.index(st.session_state.current_stage) if st.session_state.current_stage in s_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
 
     if st.session_state.is_loading:
         st.session_state.current_group, st.session_state.current_stage = sel_group, sel_stage
@@ -184,7 +169,6 @@ if page == "Live Dashboard":
         st.success(f"📍 {selected_tour} | Group {st.session_state.current_group} | Stage {st.session_state.current_stage}")
         tabs = st.tabs(["🏁 Stage", "🟡 GC", "🟢 Points", "🔴 KOM", "🔵 TP", "👥 Team GC", "🏆 Team TP", "🚀 Next Stage Grid"])
         keys = ["stageResults", "generalClassification", "sprintClassification", "mountainClassification", "tpClassification", "teamTimeClassification", "teamTPClassification", "nextStageGrid"]
-        
         for i, k in enumerate(keys):
             with tabs[i]:
                 df = pd.DataFrame(d.get(k, [])).fillna("")
@@ -195,12 +179,9 @@ if page == "Live Dashboard":
                         df['jersey'] = df['jersey_raw'].apply(get_jersey_icon)
                     
                     cur_map = BASE_COLUMN_MAP.copy()
-                    if k == "generalClassification":
-                        cur_map["stagePts"], cur_map["tourPts"] = "Stage GC Time", "Tour Time"
-                    elif k in ["sprintClassification", "mountainClassification"]:
-                        cur_map["stagePts"], cur_map["tourPts"] = "Stage Pts", "Total Pts"
-                    elif k == "nextStageGrid":
-                        cur_map["grid"] = "Next Stage Grid"
+                    if k == "generalClassification": cur_map["stagePts"], cur_map["tourPts"] = "Stage GC Time", "Tour Time"
+                    elif k in ["sprintClassification", "mountainClassification"]: cur_map["stagePts"], cur_map["tourPts"] = "Stage Pts", "Total Pts"
+                    elif k == "nextStageGrid": cur_map["grid"] = "Next Stage Grid"
                     
                     df = df.rename(columns=cur_map)
                     st.dataframe(df.style.apply(style_rows, axis=1), use_container_width=True, hide_index=True, column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None})
@@ -224,17 +205,41 @@ elif page == "🏆 Hall of Fame":
 
     winners = get_hof(sel_hof)
     if winners:
-        st.markdown('<div class="hof-header-grid"><div class="hof-header-item">Group</div><div class="hof-header-item">GC Leader</div><div class="hof-header-item">Points</div><div class="hof-header-item">KOM</div><div class="hof-header-item">Best Team</div></div>', unsafe_allow_html=True)
+        # WRAPPER PER SCROLL ORIZZONTALE
+        st.markdown('<div class="hof-scroll-container"><div class="hof-inner-box">', unsafe_allow_html=True)
+        
+        # INTESTAZIONE CON MAGLIE SOPRA I TITOLI
+        st.markdown(f"""
+            <div class="hof-header-grid">
+                <div class="hof-header-item">Group</div>
+                <div class="hof-header-item">
+                    <img src="{get_jersey_icon('yellow')}" class="header-jersey"><br>GC Leader
+                </div>
+                <div class="hof-header-item">
+                    <img src="{get_jersey_icon('green')}" class="header-jersey"><br>Points
+                </div>
+                <div class="hof-header-item">
+                    <img src="{get_jersey_icon('polkadot')}" class="header-jersey"><br>KOM
+                </div>
+                <div class="hof-header-item">
+                    <img src="{get_jersey_icon('white')}" class="header-jersey"><br>Best Team
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
         for w in winners:
             html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
-            for k, img in [("yellow", "yellow"), ("green", "green"), ("polkadot", "polkadot"), ("white", "white")]:
+            for k in ["yellow", "green", "polkadot", "white"]:
                 html += f"""<div class="jersey-box">
-                    <img src="{get_jersey_icon(img)}" class="jersey-icon-mini">
-                    <div><span class="rider-name">{w[k]['name']}</span><span class="team-name">{w[k]['team']}</span></div>
+                    <span class="rider-name">{w[k]['name']}</span>
+                    <span class="team-name">{w[k]['team']}</span>
                 </div>"""
             st.markdown(html + "</div>", unsafe_allow_html=True)
+            
+        st.markdown('</div></div>', unsafe_allow_html=True) # Fine scroll container
 
 else:
+    # --- 📊 MASTER STANDINGS ---
     st.markdown('<div class="main-header"><h1>📊 Master Standings</h1></div>', unsafe_allow_html=True)
     if st.button("🔄 Refresh Master"): st.cache_data.clear()
     m_data = requests.get(MASTER_URL).json()
