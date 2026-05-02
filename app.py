@@ -151,7 +151,7 @@ if "json_data" not in st.session_state: st.session_state.json_data = {}
 
 # --- 5. NAVIGATION ---
 st.sidebar.title("🏁 World Tour Menu")
-page = st.sidebar.radio("Navigate to:", ["Live Dashboard", "🏆 Hall of Fame", "📊 Master Standings"], disabled=st.session_state.is_loading)
+page = st.sidebar.radio("Navigate to:", ["Live Dashboard", "🏆 Hall of Fame", "📊 Overall Standings"], disabled=st.session_state.is_loading)
 
 if page == "Live Dashboard":
     st.sidebar.header("Race Settings")
