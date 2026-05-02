@@ -6,7 +6,7 @@ import string
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & HORIZONTAL SCROLL HOF) ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & CLEAN HOF TABLE) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -36,35 +36,48 @@ st.markdown("""
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
 
-    /* --- HALL OF FAME: SCROLLABILE SU MOBILE --- */
+    /* --- HALL OF FAME: CLEAN TABLE DESIGN --- */
     .hof-scroll-container {
-        overflow-x: auto; /* Permette lo scroll orizzontale */
+        overflow-x: auto; 
         padding-bottom: 20px;
+        -webkit-overflow-scrolling: touch;
     }
     .hof-inner-box {
-        min-width: 900px; /* Impedisce il rimescolamento su mobile */
+        min-width: 1000px; /* Garantisce spazio a sufficienza per 5 colonne */
     }
     
     .hof-header-grid {
         display: grid; 
-        grid-template-columns: 100px repeat(4, 1fr);
-        text-align: center; margin-bottom: 10px; background: #f8f9fa;
-        padding: 15px 10px; border-radius: 10px; align-items: end;
+        grid-template-columns: 80px repeat(4, 1fr);
+        text-align: center; 
+        background: #f1f3f5;
+        padding: 20px 10px; 
+        border-radius: 10px 10px 0 0;
+        align-items: end;
+        border-bottom: 2px solid #000000;
     }
-    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.85rem; color: #000000; }
-    .header-jersey { width: 40px; margin-bottom: 5px; }
+    .hof-header-item { font-weight: 800; text-transform: uppercase; font-size: 0.9rem; color: #000000; }
+    .header-jersey { width: 45px; margin-bottom: 8px; }
 
     .hof-row {
         display: grid; 
-        grid-template-columns: 100px repeat(4, 1fr); 
-        gap: 10px; background: #ffffff; border: 2px solid #000000;
-        border-radius: 12px; margin-bottom: 12px; padding: 15px 10px;
-        align-items: center; box-shadow: 4px 4px 0px #eee;
+        grid-template-columns: 80px repeat(4, 1fr); 
+        gap: 0px; 
+        background: #ffffff;
+        padding: 15px 10px;
+        align-items: center;
+        border-bottom: 1px solid #dee2e6; /* Separatore leggero tra righe */
     }
-    .group-label { font-size: 2.8rem; font-weight: 800; color: #C1272D; text-align: center; border-right: 2px solid #eee; }
+    .hof-row:hover { background-color: #f8f9fa; } /* Effetto al passaggio del mouse */
+
+    .group-label { font-size: 2.2rem; font-weight: 800; color: #C1272D; text-align: center; }
     
-    .jersey-box { text-align: left; padding-left: 20px; }
-    .rider-name { font-size: 1.15rem; font-weight: 700; color: #000000; display: block; line-height: 1.1; }
+    .jersey-box { 
+        text-align: left; 
+        padding: 0 15px;
+        border-left: 1px solid #f0f0f0;
+    }
+    .rider-name { font-size: 1.1rem; font-weight: 700; color: #000000; display: block; line-height: 1.2; white-space: nowrap; }
     .team-name { font-size: 0.85rem; font-weight: 600; color: #666; text-transform: uppercase; }
 
     /* Fix Icons */
@@ -142,10 +155,8 @@ if page == "Live Dashboard":
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
         st.session_state.is_loading = True
 
-    total_g = st.session_state.get("total_groups", 6)
-    total_s = st.session_state.get("total_stages", 10)
-    g_list = list(string.ascii_uppercase)[:total_g]
-    s_list = [str(i) for i in range(1, total_s + 1)]
+    total_g, total_s = st.session_state.get("total_groups", 6), st.session_state.get("total_stages", 10)
+    g_list, s_list = list(string.ascii_uppercase)[:total_g], [str(i) for i in range(1, total_s + 1)]
 
     sel_group = st.sidebar.selectbox("Group", g_list, index=g_list.index(st.session_state.current_group) if st.session_state.current_group in g_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
     sel_stage = st.sidebar.selectbox("Stage", s_list, index=s_list.index(st.session_state.current_stage) if st.session_state.current_stage in s_list else 0, disabled=st.session_state.is_loading, on_change=trigger_loading)
@@ -157,8 +168,7 @@ if page == "Live Dashboard":
                 url = f"{TOURS[selected_tour]['url']}?code=26.{TOURS[selected_tour]['id']}.{sel_group}.{sel_stage}"
                 res = requests.get(url, timeout=15).json()
                 st.session_state.json_data = res
-                st.session_state.total_groups = res.get("totalGroups", 6)
-                st.session_state.total_stages = res.get("totalStages", 10)
+                st.session_state.total_groups, st.session_state.total_stages = res.get("totalGroups", 6), res.get("totalStages", 10)
             except: st.error("Connection Error")
         st.session_state.is_loading = False
         st.rerun()
@@ -177,12 +187,10 @@ if page == "Live Dashboard":
                     if 'jersey' in df.columns:
                         df['jersey_raw'] = df['jersey']
                         df['jersey'] = df['jersey_raw'].apply(get_jersey_icon)
-                    
                     cur_map = BASE_COLUMN_MAP.copy()
                     if k == "generalClassification": cur_map["stagePts"], cur_map["tourPts"] = "Stage GC Time", "Tour Time"
                     elif k in ["sprintClassification", "mountainClassification"]: cur_map["stagePts"], cur_map["tourPts"] = "Stage Pts", "Total Pts"
                     elif k == "nextStageGrid": cur_map["grid"] = "Next Stage Grid"
-                    
                     df = df.rename(columns=cur_map)
                     st.dataframe(df.style.apply(style_rows, axis=1), use_container_width=True, hide_index=True, column_config={"Jersey": st.column_config.ImageColumn("Jersey"), "jersey_raw": None})
 
@@ -205,28 +213,16 @@ elif page == "🏆 Hall of Fame":
 
     winners = get_hof(sel_hof)
     if winners:
-        # WRAPPER PER SCROLL ORIZZONTALE
         st.markdown('<div class="hof-scroll-container"><div class="hof-inner-box">', unsafe_allow_html=True)
-        
-        # INTESTAZIONE CON MAGLIE SOPRA I TITOLI
         st.markdown(f"""
             <div class="hof-header-grid">
                 <div class="hof-header-item">Group</div>
-                <div class="hof-header-item">
-                    <img src="{get_jersey_icon('yellow')}" class="header-jersey"><br>GC Leader
-                </div>
-                <div class="hof-header-item">
-                    <img src="{get_jersey_icon('green')}" class="header-jersey"><br>Points
-                </div>
-                <div class="hof-header-item">
-                    <img src="{get_jersey_icon('polkadot')}" class="header-jersey"><br>KOM
-                </div>
-                <div class="hof-header-item">
-                    <img src="{get_jersey_icon('white')}" class="header-jersey"><br>Best Team
-                </div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('yellow')}" class="header-jersey"><br>GC Leader</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('green')}" class="header-jersey"><br>Points</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('polkadot')}" class="header-jersey"><br>KOM</div>
+                <div class="hof-header-item"><img src="{get_jersey_icon('white')}" class="header-jersey"><br>Best Team</div>
             </div>
         """, unsafe_allow_html=True)
-
         for w in winners:
             html = f'<div class="hof-row"><div class="group-label">{w["group"]}</div>'
             for k in ["yellow", "green", "polkadot", "white"]:
@@ -235,11 +231,9 @@ elif page == "🏆 Hall of Fame":
                     <span class="team-name">{w[k]['team']}</span>
                 </div>"""
             st.markdown(html + "</div>", unsafe_allow_html=True)
-            
-        st.markdown('</div></div>', unsafe_allow_html=True) # Fine scroll container
+        st.markdown('</div></div>', unsafe_allow_html=True)
 
 else:
-    # --- 📊 MASTER STANDINGS ---
     st.markdown('<div class="main-header"><h1>📊 Master Standings</h1></div>', unsafe_allow_html=True)
     if st.button("🔄 Refresh Master"): st.cache_data.clear()
     m_data = requests.get(MASTER_URL).json()
