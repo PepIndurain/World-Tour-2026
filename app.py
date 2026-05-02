@@ -8,7 +8,7 @@ import time
 # Page Configuration
 st.set_page_config(layout="wide", page_title="World Tour Dashboard") 
 
-# --- 1. CSS: TUTTI GLI STILI PRESERVATI ---
+# --- 1. CSS: CUSTOM STYLING (PURE BLACK, RED HEADER & RESPONSIVE) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
@@ -34,7 +34,7 @@ st.markdown("""
         font-size: 1.15rem !important; color: #000000 !important; font-weight: 700 !important;
     }
 
-    /* Hall of Fame: Grid e Responsive */
+    /* Hall of Fame: Fully Responsive */
     .hof-header-grid {
         display: grid; grid-template-columns: 50px repeat(4, 1fr);
         text-align: center; background: #f1f3f5; padding: 10px 5px; 
@@ -131,7 +131,6 @@ page = st.sidebar.radio("Navigate to:", ["Live Dashboard", "🏆 Hall of Fame", 
 if page == "Live Dashboard":
     st.sidebar.header("Race Settings")
     selected_tour = st.sidebar.selectbox("Select Tour", list(TOURS.keys()), disabled=st.session_state.is_loading, on_change=trigger_loading)
-    
     if st.session_state.get("prev_tour") != selected_tour:
         st.session_state.prev_tour = selected_tour
         st.session_state.current_group, st.session_state.current_stage = "A", "1"
@@ -181,13 +180,18 @@ elif page == "🏆 Hall of Fame":
     st.markdown('<div class="main-header"><h1>🏆 Hall of Fame</h1></div>', unsafe_allow_html=True)
     sel_hof = st.selectbox("Choose Tour:", list(TOURS.keys()))
     
-    def fetch_group_data(args):
+    # FUNZIONE ROBUSTA CON RETRY
+    def fetch_group_resilient(args):
         url, tid, lit, stage = args
-        try:
-            r = requests.get(f"{url}?code=26.{tid}.{lit}.{stage}", timeout=15).json()
-            def gt(k): return {"name": r[k][0]["name"], "team": r[k][0].get("teamName", r[k][0].get("team", ""))} if r.get(k) and len(r[k])>0 else {"name": "N/A", "team": "-"}
-            return {"group": lit, "yellow": gt("generalClassification"), "green": gt("sprintClassification"), "polkadot": gt("mountainClassification"), "white": gt("teamTPClassification")}
-        except: return None
+        for attempt in range(3): # Prova fino a 3 volte
+            try:
+                r = requests.get(f"{url}?code=26.{tid}.{lit}.{stage}", timeout=15).json()
+                def gt(k): return {"name": r[k][0]["name"], "team": r[k][0].get("teamName", r[k][0].get("team", ""))} if r.get(k) and len(r[k])>0 else {"name": "N/A", "team": "-"}
+                return {"group": lit, "yellow": gt("generalClassification"), "green": gt("sprintClassification"), "polkadot": gt("mountainClassification"), "white": gt("teamTPClassification")}
+            except:
+                time.sleep(1) # Aspetta un secondo prima di riprovare
+                continue
+        return None
 
     @st.cache_data(ttl=600)
     def get_hof_stable(t_name):
@@ -197,17 +201,12 @@ elif page == "🏆 Hall of Fame":
             letters = list(string.ascii_uppercase)[:m.get("totalGroups", 1)]
             last_s = m.get("totalStages", 1)
             tasks = [(t['url'], t['id'], lit, last_s) for lit in letters]
-            # Usiamo solo 3 workers per non mandare in blocco Google
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                results = list(executor.map(fetch_group_data, tasks))
-            # Filtriamo e ordiniamo per lettera gruppo
-            final = [r for r in results if r is not None]
-            return sorted(final, key=lambda x: x['group'])
+            with ThreadPoolExecutor(max_workers=2) as executor: # Solo 2 alla volta per sicurezza
+                results = list(executor.map(fetch_group_resilient, tasks))
+            return sorted([r for r in results if r], key=lambda x: x['group'])
         except: return []
 
-    with st.spinner("Analyzing all groups..."):
-        winners = get_hof_stable(sel_hof)
-
+    winners = get_hof_stable(sel_hof)
     if winners:
         st.markdown(f"""
             <div class="hof-header-grid">
