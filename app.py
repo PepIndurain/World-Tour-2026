@@ -108,6 +108,7 @@ BASE_COLUMN_MAP = {
 }
 
 TOURS = {
+    "Paris - Roubaix (6)": {"url": "https://script.google.com/macros/s/AKfycbz1WVHmkjpUnykLcjAO-GMJEOzdM_af-ngnNgJ3PYMwGLiKDWB3t3Iq605Y9dMelDZt/exec", "id": "6"},
     "Itzulia Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec", "id": "5"},
     "Volta Ciclista a Catalunya (4)": {"url": "https://script.google.com/macros/s/AKfycbxXHl_6r4aSzKUo7ziahiDp08DiSKRCobOt3Ecu29n71-PnwI1ipRrbgH7GeeHw7NKV/exec", "id": "4"},
     "Ronde van Vlaanderen (3)": {"url": "https://script.google.com/macros/s/AKfycbzbyiCdrp920TkVqvKYIYWR7ovllTbFgqxoYuyPc18yjrv-mK0-EfdPydzln2eiL0N1/exec", "id": "3"},
