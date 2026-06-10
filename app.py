@@ -108,6 +108,7 @@ BASE_COLUMN_MAP = {
 }
 
 TOURS = {
+    "Liège-Bastogne-Liège (8)": {"url": "https://script.google.com/macros/s/AKfycbyPkPeXwf8SdcpoNxGLIXwCRzHko6xSsfS-SshcnKxn_1-RzfU44R06kvDjJmc3eNg/exec", "id": "8"},
     "Tour Auvergne - Rhône - Alpes (7)": {"url": "https://script.google.com/macros/s/AKfycbwDje4lwKsIVG3FfKZuoM3xC5h8hJaJI243Rvr3ayff_FKofiozslspMV6KimmgCub2/exec", "id": "7"},
     "Paris - Roubaix (6)": {"url": "https://script.google.com/macros/s/AKfycbz1WVHmkjpUnykLcjAO-GMJEOzdM_af-ngnNgJ3PYMwGLiKDWB3t3Iq605Y9dMelDZt/exec", "id": "6"},
     "Itzulia Basque Country (5)": {"url": "https://script.google.com/macros/s/AKfycbzQ-ORFurfO95nLnljLP4Z5eMJQv5bzE8k5voX_CrKhpNTemYaeoD8UNftr2p1ClJWr/exec", "id": "5"},
