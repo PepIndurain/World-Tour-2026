@@ -108,6 +108,7 @@ BASE_COLUMN_MAP = {
 }
 
 TOURS = {
+    "Giro d'Italia (9)": {"url": "https://script.google.com/macros/s/AKfycbyPRA3T0s_3zsZdWK8Yi8icepvMpL9Wr0Aakp5-3FO35C2eJQL4jndeTs2V49wjLu6_nw/exec", "id": "9"}, 
     "Liège-Bastogne-Liège (8)": {"url": "https://script.google.com/macros/s/AKfycbyPkPeXwf8SdcpoNxGLIXwCRzHko6xSsfS-SshcnKxn_1-RzfU44R06kvDjJmc3eNg/exec", "id": "8"},
     "Tour Auvergne - Rhône - Alpes (7)": {"url": "https://script.google.com/macros/s/AKfycbwDje4lwKsIVG3FfKZuoM3xC5h8hJaJI243Rvr3ayff_FKofiozslspMV6KimmgCub2/exec", "id": "7"},
     "Paris - Roubaix (6)": {"url": "https://script.google.com/macros/s/AKfycbz1WVHmkjpUnykLcjAO-GMJEOzdM_af-ngnNgJ3PYMwGLiKDWB3t3Iq605Y9dMelDZt/exec", "id": "6"},
